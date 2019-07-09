@@ -1,0 +1,40 @@
+Burn III Answers
+
+What are some of the difference between the Intel Aero Drone (i.e. a research and development drone) vs other "commercial" or "toy" drones?
+It has an onboard computer while most of the commercial ones only have a flight computer.
+
+What are some current applications of autonomous drones? Can you think of any future applications as technology improves (e.g. faster, smaller, more efficient computers)?
+Search and rescue, filming, streaming, swarming. the future application could be constructing, manufacturing, delivering, and spying.
+
+Describe the difference between the Aero Compute Board and Aero Flight Controller. What purposes do each serve? What operating systems do each run? Do you know where both of these boards are located on the drone?
+The aero computre board is smarter and does a lot of complex tasks. The flight controller is a micro-controller that controls the lower aspects of drone flight.
+
+Which communication architecture are we using to connect are computers to the drone: Peer2Peer or centralized? What about the remote control - drone communication?
+The connection between computer and the drone is Peer2Peer. The remote control-drone communication is also Peer2Peer.
+
+True or False: For manual flight control, the remote control communicates with the drone over wifi.
+False because we use a radio control link provided by the spectrum.
+
+In order to know where the drone is in the world, it needs some form of positioning sensor/algorithms, otherwise it would be flying blind. What are the different types of positioning sensors available? Which do you think we are going to use during the class?
+LiDaR sonar radar, GPS, optical flow cam, imu, SLAM, spline waypoints, stereovision.
+We will use optival flow cam in class.
+
+True or False: during our indoor flights, we can use the GPS sensor to estimate the drone's position in the world.
+false, doesnt work inside the building
+
+Are optical flow algorithms responsible for mapping the environment? If not, can you describe conceptually what optical flow does?
+No, it tracks a bunch of points and determines where things are depending on the relative speed of the points
+
+Which sensor on the Intel Aero Drone enables 3D visual mapping?
+RealSense Intel Camera
+
+How does the Aero Compute Board communicate with the Aero Flight Controller?
+Mavlink
+
+What is PX4 and where is it running on the drone?
+A firmware that runs on the aero flight controller
+
+Which of these best describes MAVLink: 3. a communication protocol on the drone
+
+If I want to write a new, complex computer vision algorithm for the drone, should I add it to the Aero Flight Controller firmware? if not, where should I add it and why?
+Add it to the compute boards because the FC is not responsible for that 
