@@ -10,9 +10,9 @@ A python script to practice sending ROS messages
 '''
 
 class Talker():
-    ''' Generates and publishes ROS messages
+    ''' Generates and publishes ROS messages2
     '''
-    def __init__(self, chat_frequency=1.0):
+    def __init__(self, chat_frequency=10):
 
         # publishing objects
         self.chatter_pub = rospy.Publisher("/chatter", String, queue_size=1)
