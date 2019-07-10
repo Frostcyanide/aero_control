@@ -26,11 +26,8 @@ class Talker():
         i = 0
         while (not rospy.is_shutdown()):
             i = i + 1
-            '''TODO-START: FILL IN CODE HERE 
-            * create a string message that contains "Hello World" and the iteration number i
-            '''
-            raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
-            '''TODO-END '''
+            chat_msg = String()
+            chat_msg.data= "Hello World" + str(i)
             self.chatter_pub.publish(chat_msg)
             self.chat_frequency.sleep()
 
