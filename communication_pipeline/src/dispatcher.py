@@ -33,11 +33,16 @@ class Dispatcher():
 
         vel_cmd_limited = Twist()
 
+        vel_cmd_limited.linear.x = msg.linear.x
+        vel_cmd_limited.linear.y = msg.linear.y
+        vel_cmd_limited.linear.z = msg.linear.z
+
         '''TODO-START: FILL IN CODE HERE 
+        
         * Map the message received from /velocity_command into the variable vel_cmda_limited enforcing that all
         values are 0 except linear.x, which should be enforced as -_VELOCITY_COMMAND_LIMIT < linear.x < _VELOCITY_COMMAND_LIMIT
         '''
-        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+        
         '''TODO-END '''
 
         self.local_velocity_setpoint_pub.publish(vel_cmd_limited)
