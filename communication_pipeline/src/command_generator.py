@@ -6,6 +6,7 @@ import rospy
 import numpy as np
 import time
 from geometry_msgs.msg import Twist
+import math
 
 '''
 A python script to practice sending ROS messages
@@ -25,15 +26,19 @@ class VelocityCommander():
     def start_command_stream(self):
         ''' send velocity command messages
         '''
+        
+
         while (not rospy.is_shutdown()):
             vel_cmd = Twist()
             t = time.time()
             a = 0.1
+            vel_cmd.linear.x = a*math.sin(math.pi*t)
+            
             '''TODO-START: FILL IN CODE HERE 
             * create a velocity command along the x-axis that oscillates with amplitude 0.1 m/s and period 2 seconds
             * All other velocity command components should be zero
             '''
-            raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+            
             '''TODO-END '''
             self.velocity_command_pub.publish(vel_cmd)
             self.command_frequency.sleep()
