@@ -3,6 +3,8 @@
 
 
     <!--TODO: Fill in code to launch velocity_commander and dispather node-->
+    <node name="command_generator" pkg="aero_control" type="command_generator.py"/>
+    <node name="dispatcher" pkg="aero_control" type="dispatcher.py"/>
 
     <!-- Launch MAVROS node -->
     <arg name="fcu_url" default="tcp://127.0.0.1:5760" />
