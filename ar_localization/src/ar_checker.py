@@ -25,7 +25,6 @@ a tag out of order, or you can be very careful how you fly the drone.
 
 class ARDistChecker:
     def __init__(self):
-        rospy.loginfo("ARDistChecker Started!")
         '''
         Initializes class: creates subscriber to detect AR tags and publisher to publish which tag it saw.
         
@@ -45,11 +44,9 @@ class ARDistChecker:
         
         # Initialize current_marker
         self.current_marker = None
-        
 
     def ar_pose_cb(self,msg):
-        '''
-        Callback for when the drone sees an AR tag
+        '''Callback for when the drone sees an AR tag
 
         Parameters
         ----------
@@ -118,6 +115,3 @@ if __name__ == '__main__':
     a = ARDistChecker()
 
     rospy.spin()
-
-
-
