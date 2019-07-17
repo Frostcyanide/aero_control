@@ -22,6 +22,7 @@ from common import coordinate_transforms
 _RATE = 10 # (Hz) rate for rospy.rate
 _MAX_SPEED = 1 # (m/s)
 _MAX_CLIMB_RATE = 0.5 # m/s 
+_COORDINATE_FRAMES = {'lenu','lned','bu','bd','dc','fc'}
 
 #########################
 # COORDINATE TRANSFORMS #
@@ -33,28 +34,37 @@ coord_transforms = coordinate_transforms.CoordTransforms()
 # CONTROLLER #
 ##############
 class TranslationController:
-    """ Controls drone with purely translaitonal motion, not rotations
+    """ 
+    Controls drone with open-loop translational motion, not rotations.
+    
+    This only works if the drone has a good estimate of its position:
+    if qGroundControl says: FAILSAFE ENABLED: no local position, you need to 
+    restart optical flow and teraranger, else this code will not work.
     """
 
     def __init__(self, control_reference_frame='bu'):
         # Create node with name 'controller'
         rospy.init_node('translation_controller')
+        
+        if control_reference_frame not in _COORDINATE_FRAMES:
+            raise ValueError("Invalid control reference frame: " + control_reference_frame)
 
         self.control_reference_frame=control_reference_frame
 
         # A subscriber to the topic '/mavros/local_position/pose. self.pos_sub_cb is called when a message of type 'PoseStamped' is recieved 
         self.pos_sub = rospy.Subscriber('/mavros/local_position/pose', PoseStamped, self.pos_sub_cb)
-        # Quaternion representing the rotation of the drone's body frame in the NED frame. initiallize to identity quaternion
+        # Quaternion representing the rotation of the drone's body frame (bu) in the LENU frame. 
+        # Initiallize to identity quaternion, as bu is aligned with lenu when the drone starts up.
         self.quat_bu_lenu = (0, 0, 0, 1)
 
         # A subscriber to the topic '/mavros/state'. self.state_sub_cb is called when a message of type 'State' is recieved
         self.state_sub = rospy.Subscriber("/mavros/state", State, self.state_sub_cb)
-        # Flight mode of the drone ('OFFBOARD', 'POSCTL', 'MANUEL', etc.)
+        # Flight mode of the drone ('OFFBOARD', 'POSCTL', 'MANUAL', etc.)
         self.mode = State().mode
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
         self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
-        # Linear setpoint velocities
+        # Initialize linear setpoint velocities
         self.vx = 0
         self.vy = 0
         self.vz = 0
@@ -71,7 +81,7 @@ class TranslationController:
     ######################
     def pos_sub_cb(self, posestamped):
         """
-        Callback function which is called when a new message of type PoseStamped is recieved by self.position_subscriber.
+        Updates the orientation the drone (the bu frame) related to the lenu frame
             Args: 
                 - posestamped = ROS PoseStamped message
         """
@@ -82,7 +92,8 @@ class TranslationController:
 
     def state_sub_cb(self, state):
         """
-        Callback function which is called when a new message of type State is recieved by self.state_subscriber.
+        Callback function which is called when a new message of type State is recieved 
+        by self.state_subscriber to update the drone's mode (MANUAL, POSCTL, or OFFBOARD)
             
             Args:
                 - state = mavros State message
@@ -112,39 +123,39 @@ class TranslationController:
 
     def stream_offboard_velocity_setpoints(self):
         """
-        Continually publishes Twist commands in the local lenu reference frame. The values of the 
-        Twist command are set in self.vx, self.vy, self.vz and self.wx, self.wy, self.wz.
+        Continually publishes Twist commands in the local lenu reference frame. Our desired velocities (in the local frame) are in self.vx, self.vy, self.vz (linear velocity) 
+        and self.wx, self.wy, self.wz (rotational velocities around their respective axes)
         """
-        # Create twist message for velocity setpoint represented in lenu coords
+        # Create twist message for velocity setpoint represented in lenu coordinates
         velsp__lenu = Twist()
 
-        # Continualy publish velocity commands
+        # Continually publish velocity commands
         while True:
             # if the stop thread indicator variable is set to True, stop the thread
             if self.stopped:
                 return
 
-
-            # Create velocity setpoint
-            # NOTE: velsp__lenu is a Twist message, not a simple array or list. To access and assign the x,y,z
-            #       components of the translational velocity, you need to use velsp__lenu.linear.x, 
-            #       velsp__lenu.linear.y, velsp__lenu.linear.z
-            '''TODO-START: FILL IN CODE HERE 
+            '''
+            Create velocity setpoint
+            NOTE: velsp__lenu is a Twist message, not a simple array or list. It
+            is composed of two 3-long vectors: linear and angular.
+            To access and assign the x,y,z components of the translational velocity, 
+            you need to use velsp__lenu.linear.x, etc.
+            See documentation here: https://docs.ros.org/melodic/api/geometry_msgs/html/msg/Twist.html
+            
+            TODO-START: FILL IN CODE HERE 
             Use the provided functions to calculate the desired velocity of the body-up frame with respect to the 
             local ENU frame, expressed in local ENU coordinates (i.e. vsp_bu_lenu__lenu).
-            Encode this in the linear portion of the Twist message and assign to the member variable
-            self.vel_setpoint_bu_lenu__lenu     
+            Encode this in the linear portion of the Twist message.
+            
+            Use the coord_transforms.get_v__lenu function in aero_control/common/coordinate_transforms.py 
+            to convert velocities in control_reference_frame to lenu frame.
+            
+            Don't forget to prevent vx, vy from exceeding _MAX_SPEED and vz from exceeding _MAX_CLIMB_RATE
             '''
             raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
-            # Set linear velocity (convert command velocity from control_reference_frame to lenu)
+            
             '''TODO-END '''
-
-            # enforce safe velocity limits
-            if _MAX_SPEED < 0.0 or _MAX_CLIMB_RATE < 0.0:
-                raise Exception("_MAX_SPEED and _MAX_CLIMB_RATE must be positive")
-            velsp__lenu.linear.x = min(max(vx,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.y = min(max(vy,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.z = min(max(vz,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
 
             # Publish setpoint velocity
             self.velocity_pub.publish(velsp__lenu)
@@ -162,17 +173,17 @@ class TranslationController:
         """
         # Wait till drone is put into OFFBOARD mode
         if self.mode != 'OFFBOARD':
-            print('[INFO] Waiting to enter OFFBOARD mode')
+            rospy.loginfo('Open loop controller: Waiting to enter OFFBOARD mode')
             while self.mode != 'OFFBOARD' and not rospy.is_shutdown():
                 self.rate.sleep()
-            print('[INFO] {} mode ...'.format(self.mode))
+            rospy.loginfo('Open loop controller: {} mode ...'.format(self.mode))
     
         # Wait till drone is taken out of OFFBOARD mode
         else:
-            print('[INFO] Waiting to exit OFFBOARD mode')
+            rospy.loginfo('Open loop controller: Waiting to exit OFFBOARD mode')
             while self.mode == 'OFFBOARD' and not rospy.is_shutdown():
                 self.rate.sleep()
-            print('[INFO] {} mode ...'.format(self.mode))
+            rospy.loginfo('Open loop controller: {} mode ...'.format(self.mode))
 
     ###############
     # TRANSLATION #
@@ -189,35 +200,25 @@ class TranslationController:
         speed = min(speed, _MAX_SPEED)
         # Raise error if speed is 0 or not positive
         if speed <= 0:
-            raise ValueError
-
-        dx, dy, dz = displacement
-        # Magnitude of dispacement
-        distance = math.sqrt(dx**2 + dy**2 + dz**2)
-        # time (datetime.timedelta object) is the amount of time the velocity message will be published for
-        time = datetime.timedelta(seconds = distance/speed)
-
-        # Record the start time
-        start_time = datetime.datetime.now()
-
-        # Set command velocites (vi = di/time)
-        self.vx = dx/time.total_seconds()
-        self.vy = dy/time.total_seconds()
-        self.vz = dz/time.total_seconds()
-
-        print('[INFO] Time of translation: {:.2f}'.format(time.total_seconds()))
-        print('[INFO] Displacement vector: {}'.format(displacement))
-
-            # Publish command velocites for time seconds
-        while datetime.datetime.now() - start_time < time and not rospy.is_shutdown():
-            # print(datetime.datetime.now() - start_time)
-            # Note: we don't actually have to call the publish command here. Velocity command are automatically  published 
-            # by the stream function which is running in parrellel
-            self.rate.sleep()
+            raise ValueError("Speed must be positive")
+        ''' TODO-START
+        Set self.vx, self.vy, self.vz to the correct speeds, and set the correct time 
+        for the velocity commands to be published for.
+        '''
+        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+        move_time = 0
+        
+        ''' TODO-END'''
+        
+        rospy.loginfo('Open loop controller: Time of translation: {:.2f}'.format(move_time))
+        rospy.loginfo('Open loop controller: Displacement vector: {}'.format(displacement))
+        
+        # Wait for us to finish publishing velocities
+        rospy.sleep(move_time)
 
         # Reset command velocites to 0
         self.vx = self.vy = self.vz = 0
-        print('[INFO] Done')
+        rospy.loginfo('Open loop controller: Done')
 
 
     
@@ -229,15 +230,14 @@ if __name__ == "__main__":
     # Start streaming setpoint velocites
     controller.start()
     controller.wait()
-
-    # Execute maneuver
-    # TODO: call controller.translate with a 3-tuple and scalar, positive speed. 
-    # 3-tuple is to total change in position desired
-    speed = .3
-    controller.translate((0.5,0,0), speed)
-    controller.translate((0,-0.5,0), speed)
-    controller.translate((-0.5,0,0), speed)
-    controller.translate((0,0.5,0), speed)
+    
+    '''
+    Execute maneuver
+    TODO-START: call controller.translate with a 3-tuple and scalar, positive speed. 
+    3-tuple is to total change in position desired
+    '''
+    raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+    ''' TODO-END '''
 
     controller.wait()
     controller.stop()
