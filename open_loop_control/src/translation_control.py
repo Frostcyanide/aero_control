@@ -153,7 +153,18 @@ class TranslationController:
             
             Don't forget to prevent vx, vy from exceeding _MAX_SPEED and vz from exceeding _MAX_CLIMB_RATE
             '''
-            raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+            vx = coord_transforms.get_v__lenu((vx, vy, vz), 'bu', self.quat_bu_lenu)[0]
+            vy = coord_transforms.get_v__lenu((vx, vy, vz), 'bu', self.quat_bu_lenu)[1]
+            vz = coord_transforms.get_v__lenu((vx, vy, vz), 'bu', self.quat_bu_lenu)[2]
+
+            vx = min(vx, _MAX_SPEED)
+            vy = min(vy, _MAX_SPEED)
+            vz = min(vz, _MAX_CLIMB_RATE)
+
+            velsp__lenu.linear.x = vx
+            velsp__lenu.linear.y = vy
+            velsp__lenu.linear.z = vz
+
             
             '''TODO-END '''
 
@@ -194,7 +205,7 @@ class TranslationController:
         location (x, y, z) to the point (x+dx, y+dy, z+dz),
             Args:
                 - displacement = (dx, dy, dz) (m)
-                - speed = (m/s), mush be positive
+                - speed = (m/s), must be positive
         """
         # Clip speed at _MAX_SPEED
         speed = min(speed, _MAX_SPEED)
@@ -205,8 +216,12 @@ class TranslationController:
         Set self.vx, self.vy, self.vz to the correct speeds, and set the correct time 
         for the velocity commands to be published for.
         '''
-        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
-        move_time = 0
+        move_time = math.sqrt(displacement.dx**2 + displacement.dy**2 + displacement**2) / speed
+
+        self.vx = displacement.dx/move_time
+        self.vy = displacement.dy/move_time
+        self.vz = displacement.dz/move_time
+        
         
         ''' TODO-END'''
         
@@ -236,7 +251,8 @@ if __name__ == "__main__":
     TODO-START: call controller.translate with a 3-tuple and scalar, positive speed. 
     3-tuple is to total change in position desired
     '''
-    raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+    controller.translate((1,1,1), .2)
+    
     ''' TODO-END '''
 
     controller.wait()
