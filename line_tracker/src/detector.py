@@ -85,42 +85,84 @@ class LineDetector:
 
         # Threshold the image and find contours in the masked image
         # If contours exist, we will consider the countour with the most area to be our line
-        
-            # Fit a rectangle of smallest area possible around the max countour and get the hight and width of the rectangle. 
+
+        # Fit a rectangle of smallest area possible around the max countour and get the hight and width of the rectangle. 
             # If neither value in longer than LENGTH_THRESH, we
             # will not consider the countour to be a line
             
 
             # Fit a line to the max countour. This will be our line to return. fitLine() return values are length 1 numpy arrays
-            
-            # Publish a copy of the image annotated with the detected line (only if display is true)
-            
-                # Draw the rectangle around the countour. Hint: Use cv2.boxPoints() and cv2.drawContours()
-                
 
-                # Draw point at (x, y). Hint: use cv2.circle()
-                
+        _, thresholded = cv2.threshold(img,240,255,cv2.THRESH_BINARY)
+        kernel = np.ones((3,3),np.uint8)
+        dilation = cv2.dilate(thresholded,kernel,iterations = 4)
+        img2, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #print(contours)
+        
+        dilation = cv2.cvtColor(dilation, cv2.COLOR_GRAY2RGB)
+        
+        area=0
+        max_contour_index = 0
+        if len(contours)!=0:
+            for index, contour in enumerate(contours):
+                area += cv2.contourArea(contour)
+                if cv2.contourArea(contour) > cv2.contourArea(contours[max_contour_index]):
+                    max_contour_index = index
+            #print(area)
+            rect = cv2.minAreaRect(contours[max_contour_index])
 
-                # Draw vector parallel to the fitted line at point (x,y)). 
-                # Hint: just use cv2.line() and multiply (vx,vy) by some scalar to make the line 
-                # a certain length and find the second point to draw the line
-                
-                # Convert color image to a ROS Image message
-                
-                # Publish annotated image
-                
-
+            if rect.width > LENGTH_THRESH or rect.height > LENGTH_THRESH:
+                cnt = contours[max_contour_index]
+                rows,cols = dilation.shape[:2]
+                [vx,vy,x,y] = cv2.fitLine(cnt, cv2.DIST_L2,0,0.01,0.01)
+                lefty = int((-x*vy/vx) + y)
+                righty = int(((cols-x)*vy/vx)+y)
+                cv2.line(dilation,(cols-1,righty),(0,lefty),(0,255,255),2)
                 return x, y, vx, vy
+
+        
+        
+            
+        # Publish a copy of the image annotated with the detected line (only if display is true)
+        
+            # Draw the rectangle around the countour. Hint: Use cv2.boxPoints() and cv2.drawContours()
+            
+
+            # Draw point at (x, y). Hint: use cv2.circle()
+            
+
+            # Draw vector parallel to the fitted line at point (x,y)). 
+            # Hint: just use cv2.line() and multiply (vx,vy) by some scalar to make the line 
+            # a certain length and find the second point to draw the line
+            
+            # Convert color image to a ROS Image message
+            
+            # Publish annotated image
+        if DISPLAY:
+            #draw rectangle
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(image, [box],0,(0,0,255),2)
+            
+            #draw point
+            cv2.circle(image, (x, y), 2, (0,0,255), -1)
+
+            #draw vector
+            cv2.line(image, (x,y),(x+vx,y+vy),(255,0,0),4)
+
+        
 
 
         # Publish image even if no line is detected
-        
+
             # Convert color to a ROS Image message
             
             # Publish annotated image with no contours or lines overlayed
-            
+            rosimage = self.bridge.cv2_to_imgmsg(image, "rgb8")
+            self.param_pub.publish(rosimage)
 
         # If no countors were found, return None
+        
         return None
         '''TODO-END '''
 
