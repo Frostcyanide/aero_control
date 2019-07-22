@@ -15,9 +15,9 @@ import sys
 #############
 # CONSTANTS #
 #############
-LOW = None# Lower image thresholding bound
-HI = None # Upper image thresholding bound
-LENGTH_THRESH = None # If the length of the largest countour is less than LENGTH_THRESH, we will not consider it a line
+LOW = 200 # Lower threshold bound
+HI = 255 # Upper threshold bound
+LENGTH_THRESH = 60 # If the length of the largest countour is less than LENGTH_THRESH, we will not consider it a line
 KERNEL  = np.ones((5,5),np.uint8)
 DISPLAY = True
 
@@ -53,7 +53,6 @@ class LineDetector:
 
         # Detect line in the image. detect returns a  parameterize the line (if one exists)
         line = self.detect_line(image)
-
         # If a line was detected, publish the parameterization to the topic '/line/param'
         if line is not None:
             msg = Line()
@@ -66,7 +65,7 @@ class LineDetector:
     ##########
     def detect_line(self, image):
         """ 
-        Given an image, fit a line to biggest contour if it meets size requirements (otherwise return None)
+        Given an image, fit a line to biggest contour if it meets size requirements
         and return a paramaterization of the line as a center point on the line and a vector
         pointing in the direction of the line.
             Args:
@@ -152,6 +151,7 @@ class LineDetector:
 
         
 
+        '''TODO-END '''
 
         # Publish image even if no line is detected
 
@@ -164,7 +164,6 @@ class LineDetector:
         # If no countors were found, return None
         
         return None
-        '''TODO-END '''
 
 
 if __name__ == '__main__':
