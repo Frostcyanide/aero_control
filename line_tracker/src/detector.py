@@ -76,7 +76,7 @@ class LineDetector:
         """
 
         '''TODO-START: FILL IN CODE HERE '''
-        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+        
 
         # Get a colored copy of the image. This will be used solely to provide an annotated version
         # of the image for debuging purposes
