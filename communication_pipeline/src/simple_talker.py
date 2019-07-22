@@ -10,9 +10,9 @@ A python script to practice sending ROS messages
 '''
 
 class Talker():
-    ''' Generates and publishes ROS messages
+    ''' Generates and publishes ROS messages2
     '''
-    def __init__(self, chat_frequency=1.0):
+    def __init__(self, chat_frequency=10):
 
         # publishing objects
         self.chatter_pub = rospy.Publisher("/chatter", String, queue_size=1)
@@ -26,11 +26,8 @@ class Talker():
         i = 0
         while (not rospy.is_shutdown()):
             i = i + 1
-            '''TODO-START: FILL IN CODE HERE 
-            * create a string message that contains "Hello World" and the iteration number i
-            '''
-            raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
-            '''TODO-END '''
+            chat_msg = String()
+            chat_msg.data= "Hello World" + str(i)
             self.chatter_pub.publish(chat_msg)
             self.chat_frequency.sleep()
 

@@ -153,7 +153,31 @@ class TranslationController:
             
             Don't forget to prevent vx, vy from exceeding _MAX_SPEED and vz from exceeding _MAX_CLIMB_RATE
             '''
-            raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+            
+
+            self.vx = min(self.vx, _MAX_SPEED)
+            self.vy = min(self.vy, _MAX_SPEED)
+            self.vz = min(self.vz, _MAX_CLIMB_RATE)
+
+            if self.vx < 0:
+                self.vx = max(self.vx, -_MAX_SPEED)
+            if self.vy < 0:
+                self.vy = max(self.vy, -_MAX_SPEED)
+            if self.vz < 0:
+                self.vz = max(self.vz, -_MAX_CLIMB_RATE)
+
+            '''vx_lenu = coord_transforms.get_v__lenu((self.vx, 0, 0), 'bu', self.quat_bu_lenu)[0]
+            vy_lenu = coord_transforms.get_v__lenu((self.vx, 0, 0), 'bu', self.quat_bu_lenu)[1]
+            vz_lenu = coord_transforms.get_v__lenu((self.vx, 0, 0), 'bu', self.quat_bu_lenu)[2]'''
+
+            vx_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[0]
+            vy_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[1]
+            vz_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[2]
+
+            velsp__lenu.linear.x = vx_lenu
+            velsp__lenu.linear.y = vy_lenu
+            velsp__lenu.linear.z = vz_lenu
+
             
             '''TODO-END '''
 
@@ -194,7 +218,7 @@ class TranslationController:
         location (x, y, z) to the point (x+dx, y+dy, z+dz),
             Args:
                 - displacement = (dx, dy, dz) (m)
-                - speed = (m/s), mush be positive
+                - speed = (m/s), must be positive
         """
         # Clip speed at _MAX_SPEED
         speed = min(speed, _MAX_SPEED)
@@ -205,8 +229,12 @@ class TranslationController:
         Set self.vx, self.vy, self.vz to the correct speeds, and set the correct time 
         for the velocity commands to be published for.
         '''
-        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
-        move_time = 0
+        move_time = math.sqrt(displacement[0]**2 + displacement[1]**2 + displacement[2]**2) / speed
+
+        self.vx = displacement[0]/move_time
+        self.vy = displacement[1]/move_time
+        self.vz = displacement[2]/move_time
+        
         
         ''' TODO-END'''
         
@@ -236,7 +264,82 @@ if __name__ == "__main__":
     TODO-START: call controller.translate with a 3-tuple and scalar, positive speed. 
     3-tuple is to total change in position desired
     '''
-    raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+    '''
+    controller.translate((0,-1,0), .3)
+    controller.translate((0,0,1), .3)
+    controller.translate((0,1,0), .3)
+    controller.translate((0,0,-1), .3)
+    '''
+
+    '''
+    #B3
+    controller.translate((0,0,1), .3) #up
+    controller.translate((0,1,0), .3) #left?
+    controller.translate((0,0,-.5), .3) #down
+    controller.translate((0,-1, 0), .3) #right
+    controller.translate((0,1,0), .3) #right
+    controller.translate((0,0,-.5), .3) #down
+    controller.translate((0,-1, 0), .3) #left
+    controller.translate((0,2.5,0), .3) #right
+    controller.translate((0,0,.5), .3) #up
+    controller.translate((0,-1,0), .3) #left
+    controller.translate((0,1,0), .3) #right
+    controller.translate((0,0,.5), .3) #up
+    controller.translate((0,-1,0), .3) #left
+    '''
+    '''
+    controller.translate((0,0,-.4), .15) #down
+    controller.translate((0,-.2,0), .15) #right
+    controller.translate((0,0,.2), .15) #up
+    controller.translate((0,.2, 0), .15) #left
+    controller.translate((0,-.2,0), .15) #right
+    controller.translate((0,-.1,0), .3) #right but faster
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,-.2,0), .15) #right
+    controller.translate((0,0,.2), .15) #up
+    controller.translate((0,-.1,0), .3) #right but faster
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,0,.1), .15) #up
+    controller.translate((0,-.1,.1), .15) #diagonal up right?
+    controller.translate((0,-.1,0), .3) #right but faster
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,0,.2), .15) #up
+    controller.translate((0,-.2,-.2), .15) #diagonal down right
+    controller.translate((0,0,-.2), .15) #down
+    '''
+    controller.translate((0,0,-.4), .15) #down
+    controller.translate((0,.23,0), .15) #right
+    controller.translate((0,0,.2), .15) #up
+    controller.translate((0,-.23, 0), .15) #left
+    controller.translate((0,.23,0), .15) #right
+
+    controller.translate((0,.15,0), .3) #right but faster
+
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,.23,0), .15) #right
+    controller.translate((0,0,.2), .15) #up
+
+    controller.translate((0,.15,0), .3) #right but faster
+
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,0,.1), .15) #up
+    controller.translate((0,.12,.1), .15) #diagonal up right?
+
+    controller.translate((0,.15,0), .3) #right but faster
+
+    controller.translate((0,0,-.2), .15) #down
+    controller.translate((0,0,.2), .15) #up
+    controller.translate((0,.23,-.23), .15) #diagonal down right
+    controller.translate((0,0,.2), .15) #up
+
+    
+
+
+
+
+
+
+
     ''' TODO-END '''
 
     controller.wait()
