@@ -29,10 +29,10 @@ _MAX_ROTATION_RATE = None # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND = None # Number of pixels forward to extrapolate the line
-KP_X = None
-KP_Y = None
-KP_Z_W = None
+EXTEND = 50 # Number of pixels forward to extrapolate the line
+KP_X = .1
+KP_Y = .2
+KP_Z_W = .2
 DISPLAY = True
 
 #########################
@@ -67,7 +67,7 @@ class LineController:
         self.mode = State().mode
 
         # A subscriber to the topic '/line/param'. self.line_sub_cb is called when a message of type 'Line' is recieved 
-        self.line_sub = rospy.Subscriber('/line/param', Line, self.line_sub_cb)
+        self.line_sub = rospy.Subscriber('/line/param', LineArray, self.line_sub_cb)
 
         # A subscriber to the topic '/aero_downward_camera/image'. self.image_sub_cb is called when a message is recieved 
         self.camera_sub = rospy.Subscriber('/aero_downward_camera/image', Image, self.camera_sub_cb)
@@ -141,7 +141,25 @@ class LineController:
         """
 
         '''TODO-START: FILL IN CODE HERE '''
-        raise Exception("CODE INCOMPLETE! Delete this exception and replace with your own code")
+        
+        if len(param.arr) != 0:
+            x,y,vx,vy = param.arr[0].x,param.arr[0].y,param.arr[0].vx,param.arr[0].vy
+           
+            V=np.array([CENTER[0]-x, CENTER[1]-y])
+            U=np.asarray((vx,vy)/(math.sqrt(vx**2+vy**2)))
+            if U[0]<0:
+                U[0] = -U[0]
+
+            closest = (x+np.dot(U,V)*U[0],y+np.dot(U,V)*U[1])
+
+            extend_point=(closest[0]+EXTEND*U[0], closest[1]+EXTEND*U[1])
+
+            error_vector = (extend_point[0]-CENTER[0],extend_point[1]-CENTER[1])
+            self.vx__dc =KP_X*error_vector[0]
+            self.vy__dc =KP_Y*error_vector[1]
+
+            error_angle = math.atan2(vy, vx)
+            self.wz__dc = KP_Z_W*error_angle
 
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND (in pixels) from the closest point on the line
@@ -156,6 +174,9 @@ class LineController:
         
 
         '''TODO-END '''
+
+
+        ### DO NOT MODIFY ###
     
         # publish tracker commands to an image that can be visualized on
         # a camera feed

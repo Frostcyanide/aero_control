@@ -9,7 +9,7 @@ import cv2
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
-from aero_control.msg import Line
+from aero_control.msg import Line, LineArray
 import sys
 
 #############
@@ -17,7 +17,7 @@ import sys
 #############
 LOW = 200 # Lower threshold bound
 HI = 255 # Upper threshold bound
-LENGTH_THRESH = 60 # If the length of the largest countour is less than LENGTH_THRESH, we will not consider it a line
+LENGTH_THRESH = 80 # If the length of the largest countour is less than LENGTH_THRESH, we will not consider it a line
 KERNEL  = np.ones((5,5),np.uint8)
 DISPLAY = True
 
@@ -30,7 +30,7 @@ class LineDetector:
         self.camera_sub = rospy.Subscriber('/aero_downward_camera/image', Image, self.camera_sub_cb)
 
         # A publisher which will publish a parametrization of the detected line to the topic '/line/param'
-        self.param_pub = rospy.Publisher('/line/param', Line, queue_size=1)
+        self.param_pub = rospy.Publisher('/line/param', LineArray, queue_size=1)
 
         # A publisher which will publish an image annotated with the detected line to the topic 'line/detector_image'
         self.detector_image_pub = rospy.Publisher('/line/detector_image', Image, queue_size=1)
@@ -58,7 +58,10 @@ class LineDetector:
             msg = Line()
             msg.x, msg.y, msg.vx, msg.vy = line
             # Publish param msg
-            self.param_pub.publish(msg)
+            line_arr = LineArray()
+            line_arr = [msg]
+            #print(line_arr)
+            self.param_pub.publish(line_arr)
 
     ##########
     # DETECT #
@@ -79,7 +82,7 @@ class LineDetector:
         
 
         # Get a colored copy of the image. This will be used solely to provide an annotated version
-        # of the image for debuging purposes
+        # of the image for debugging purposes
         
 
         # Threshold the image and find contours in the masked image
@@ -91,32 +94,51 @@ class LineDetector:
             
 
             # Fit a line to the max countour. This will be our line to return. fitLine() return values are length 1 numpy arrays
-
-        _, thresholded = cv2.threshold(img,240,255,cv2.THRESH_BINARY)
+        
+        _, thresholded = cv2.threshold(image,240,255,cv2.THRESH_BINARY)
         kernel = np.ones((3,3),np.uint8)
         dilation = cv2.dilate(thresholded,kernel,iterations = 4)
         img2, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
         #print(contours)
         
-        dilation = cv2.cvtColor(dilation, cv2.COLOR_GRAY2RGB)
-        
-        area=0
+        #area=0
         max_contour_index = 0
         if len(contours)!=0:
             for index, contour in enumerate(contours):
-                area += cv2.contourArea(contour)
+                #area += cv2.contourArea(contour)
                 if cv2.contourArea(contour) > cv2.contourArea(contours[max_contour_index]):
                     max_contour_index = index
             #print(area)
             rect = cv2.minAreaRect(contours[max_contour_index])
 
-            if rect.width > LENGTH_THRESH or rect.height > LENGTH_THRESH:
+            if rect[1][0] > LENGTH_THRESH or rect[1][1] > LENGTH_THRESH:
+                #print('rect found')
+                #print(rect[1][0])
+                #print(rect[1][1])
                 cnt = contours[max_contour_index]
                 rows,cols = dilation.shape[:2]
                 [vx,vy,x,y] = cv2.fitLine(cnt, cv2.DIST_L2,0,0.01,0.01)
                 lefty = int((-x*vy/vx) + y)
                 righty = int(((cols-x)*vy/vx)+y)
-                cv2.line(dilation,(cols-1,righty),(0,lefty),(0,255,255),2)
+                cv2.line(image,(cols-1,righty),(0,lefty),(0,255,255),2)
+                
+                if DISPLAY:
+                    image =cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+                    #draw rectangle
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    cv2.drawContours(image, [box],0,(0,0,255),2)
+                    
+                    #draw point
+                    cv2.circle(image, (x, y), 2, (0,0,255), -10)
+
+                    #draw vector
+                    cv2.line(image, (x,y),((x+50*vx),(y+50*vy)),(0,255,0),1)
+
+                    rosimage = self.bridge.cv2_to_imgmsg(image, "rgb8")
+                    self.detector_image_pub.publish(rosimage)   
+                
                 return x, y, vx, vy
 
         
@@ -137,17 +159,12 @@ class LineDetector:
             # Convert color image to a ROS Image message
             
             # Publish annotated image
-        if DISPLAY:
-            #draw rectangle
-            box = cv2.boxPoints(rect)
-            box = np.int0(box)
-            cv2.drawContours(image, [box],0,(0,0,255),2)
-            
-            #draw point
-            cv2.circle(image, (x, y), 2, (0,0,255), -1)
+        #print('no rect found')    
 
-            #draw vector
-            cv2.line(image, (x,y),(x+vx,y+vy),(255,0,0),4)
+        if DISPLAY:
+            image =cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+            rosimage = self.bridge.cv2_to_imgmsg(image, "rgb8")
+            self.detector_image_pub.publish(rosimage)
 
         
 
@@ -158,8 +175,7 @@ class LineDetector:
             # Convert color to a ROS Image message
             
             # Publish annotated image with no contours or lines overlayed
-            rosimage = self.bridge.cv2_to_imgmsg(image, "rgb8")
-            self.param_pub.publish(rosimage)
+            
 
         # If no countors were found, return None
         
