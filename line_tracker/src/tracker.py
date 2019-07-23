@@ -14,6 +14,7 @@ from aero_control.msg import Line
 import mavros
 from mavros_msgs.msg import State
 from threading import Thread
+from aero_control.msg import Line, LineArray
 
 import sys, os
 sys.path.append(os.path.join(sys.path[0], '../..'))
@@ -23,16 +24,16 @@ from common import coordinate_transforms
 # CONSTANTS #
 #############
 _RATE = 10 # (Hz) rate for rospy.rate
-_MAX_SPEED = None # (m/s)
-_MAX_CLIMB_RATE = None # m/s
-_MAX_ROTATION_RATE = None # rad/s 
+_MAX_SPEED = 1.0 # (m/s)
+_MAX_CLIMB_RATE = 0.5 # m/s
+_MAX_ROTATION_RATE = .5 # rad/s 
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
 EXTEND = 50 # Number of pixels forward to extrapolate the line
-KP_X = .1
-KP_Y = .2
-KP_Z_W = .2
+KP_X = .01
+KP_Y = .001
+KP_Z_W = 1
 DISPLAY = True
 
 #########################
@@ -146,20 +147,23 @@ class LineController:
             x,y,vx,vy = param.arr[0].x,param.arr[0].y,param.arr[0].vx,param.arr[0].vy
            
             V=np.array([CENTER[0]-x, CENTER[1]-y])
-            U=np.asarray((vx,vy)/(math.sqrt(vx**2+vy**2)))
+            U=np.array([vx/(math.sqrt(vx**2+vy**2)), vy/(math.sqrt(vx**2+vy**2))])
             if U[0]<0:
                 U[0] = -U[0]
 
             closest = (x+np.dot(U,V)*U[0],y+np.dot(U,V)*U[1])
 
-            extend_point=(closest[0]+EXTEND*U[0], closest[1]+EXTEND*U[1])
+            target=(closest[0]+EXTEND*U[0], closest[1]+EXTEND*U[1])
 
-            error_vector = (extend_point[0]-CENTER[0],extend_point[1]-CENTER[1])
-            self.vx__dc =KP_X*error_vector[0]
-            self.vy__dc =KP_Y*error_vector[1]
+            error =  (target[0]-CENTER[0],target[1]-CENTER[1])
+            self.vx__dc =KP_X*error[0]
+            self.vy__dc =KP_Y*error[1]
 
             error_angle = math.atan2(vy, vx)
             self.wz__dc = KP_Z_W*error_angle
+        else:
+            self.vx__dc = 0.0
+            self.vy__dc = 0.0
 
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND (in pixels) from the closest point on the line
@@ -186,7 +190,7 @@ class LineController:
             # Draw circle at closest 
             cv2.circle(image, (int(closest[0]), int(closest[1])), 5, (255,128,255), -1)
             # Get unit error vector
-            unit_error = error/np.linalg.norm(error)
+            #unit_error = error/np.linalg.norm(error)
             # Draw line from CENTER to target
             cv2.line(image, (int(CENTER[0]), int(CENTER[1])), (int(target[0]), int(target[1])), (255, 0, 0), 2)
             # Convert color to a ROS Image message
