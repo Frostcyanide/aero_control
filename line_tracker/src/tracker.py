@@ -31,9 +31,9 @@ IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
 EXTEND = 40 # Number of pixels forward to extrapolate the line
-KP_X = .01
-KP_Y = .007
-KP_Z = 1.5
+KP_X = .015 #.01
+KP_Y = .009 #.009
+KP_Z = 1.5 #1.5
 KP_Z_W = 1
 TARGET_Z = 0.7
 DISPLAY = True
@@ -250,7 +250,7 @@ class LineController:
             if self.stopped:
                 return
 
-            self.vz__dc = -1*(TARGET_Z - self.height)*KP_Z
+            #self.vz__dc = -1*(TARGET_Z - self.height)*KP_Z
             
             # Create velocity setpoint
             # NOTE: velsp__lenu is a Twist message, not a simple array or list. To access and assign the x,y,z
