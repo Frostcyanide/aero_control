@@ -180,6 +180,8 @@ class LineController:
                 image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
+                rospy.loginfo(self.vz__dc)
+                
 
         else:
             self.vx__dc = 0.0
@@ -190,6 +192,7 @@ class LineController:
                 image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
+                rospy.loginfo(self.vz__dc)
 
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND (in pixels) from the closest point on the line
@@ -248,6 +251,7 @@ class LineController:
                 return
 
             self.vz__dc = -1*(TARGET_Z - self.height)*KP_Z
+            
             # Create velocity setpoint
             # NOTE: velsp__lenu is a Twist message, not a simple array or list. To access and assign the x,y,z
             #       components of the translational velocity, you need to use velsp__lenu.linear.x, 
