@@ -30,10 +30,12 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND = 50 # Number of pixels forward to extrapolate the line
+EXTEND = 40 # Number of pixels forward to extrapolate the line
 KP_X = .01
-KP_Y = .001
+KP_Y = .007
+KP_Z = 1.5
 KP_Z_W = 1
+TARGET_Z = 0.7
 DISPLAY = True
 
 #########################
@@ -88,6 +90,8 @@ class LineController:
         # Yaw setpoint velocities in downward camera frame
         self.wz__dc = 0.0
 
+        self.height = 0.0
+
         # Initialize instance of CvBridge to convert images between OpenCV images and ROS images
         self.bridge = CvBridge()
 
@@ -111,6 +115,7 @@ class LineController:
                                 posestamped.pose.orientation.y, 
                                 posestamped.pose.orientation.z, 
                                 posestamped.pose.orientation.w)
+        self.height = posestamped.pose.position.z
 
     def state_sub_cb(self, state):
         """
@@ -156,14 +161,35 @@ class LineController:
             target=(closest[0]+EXTEND*U[0], closest[1]+EXTEND*U[1])
 
             error =  (target[0]-CENTER[0],target[1]-CENTER[1])
+            
             self.vx__dc =KP_X*error[0]
             self.vy__dc =KP_Y*error[1]
 
             error_angle = math.atan2(vy, vx)
             self.wz__dc = KP_Z_W*error_angle
+
+            if DISPLAY:
+                image = self.image.copy()
+                # Draw circle at closest 
+                cv2.circle(image, (int(closest[0]), int(closest[1])), 5, (255,128,255), -1)
+                # Get unit error vector
+                #unit_error = error/np.linalg.norm(error)
+                # Draw line from CENTER to target
+                cv2.line(image, (int(CENTER[0]), int(CENTER[1])), (int(target[0]), int(target[1])), (255, 0, 0), 2)
+                # Convert color to a ROS Image message
+                image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
+                # Publish annotated image
+                self.tracker_image_pub.publish(image_msg)
+
         else:
             self.vx__dc = 0.0
             self.vy__dc = 0.0
+
+            if DISPLAY:
+                image = self.image.copy()
+                image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
+                # Publish annotated image
+                self.tracker_image_pub.publish(image_msg)
 
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND (in pixels) from the closest point on the line
@@ -185,18 +211,7 @@ class LineController:
         # publish tracker commands to an image that can be visualized on
         # a camera feed
 
-        if DISPLAY:
-            image = self.image.copy()
-            # Draw circle at closest 
-            cv2.circle(image, (int(closest[0]), int(closest[1])), 5, (255,128,255), -1)
-            # Get unit error vector
-            #unit_error = error/np.linalg.norm(error)
-            # Draw line from CENTER to target
-            cv2.line(image, (int(CENTER[0]), int(CENTER[1])), (int(target[0]), int(target[1])), (255, 0, 0), 2)
-            # Convert color to a ROS Image message
-            image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
-            # Publish annotated image
-            self.tracker_image_pub.publish(image_msg)
+        
 
 
     #############
@@ -232,7 +247,7 @@ class LineController:
             if self.stopped:
                 return
 
-
+            self.vz__dc = -1*(TARGET_Z - self.height)*KP_Z
             # Create velocity setpoint
             # NOTE: velsp__lenu is a Twist message, not a simple array or list. To access and assign the x,y,z
             #       components of the translational velocity, you need to use velsp__lenu.linear.x, 
@@ -258,7 +273,7 @@ class LineController:
                 raise Exception("_MAX_SPEED,_MAX_CLIMB_RATE, and _MAX_ROTATION_RATE must be positive")
             velsp__lenu.linear.x = min(max(vx,-_MAX_SPEED), _MAX_SPEED)
             velsp__lenu.linear.y = min(max(vy,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.z = min(max(vz,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
+            #velsp__lenu.linear.z = min(max(vz,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
             velsp__lenu.angular.z = min(max(wz,-_MAX_ROTATION_RATE), _MAX_ROTATION_RATE)
 
             # Publish setpoint velocity

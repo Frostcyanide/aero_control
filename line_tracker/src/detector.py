@@ -62,6 +62,8 @@ class LineDetector:
             line_arr = [msg]
             #print(line_arr)
             self.param_pub.publish(line_arr)
+        else:
+            self.param_pub.publish(LineArray())
 
     ##########
     # DETECT #
