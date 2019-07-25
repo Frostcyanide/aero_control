@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+'''
+TODO:
+not rising at the right time
+rise higher?
+'''
 ###########
 # IMPORTS #
 ###########
@@ -27,7 +32,10 @@ _COORDINATE_FRAMES = {'lenu','lned','bu','bd','dc','fc'}
 #KP_X = .015 #.01
 #KP_Y = .009 #.009
 KP_Z = 1.5 #1.5
-TARGET_Z = 0.75
+
+
+WAIT_TIME = 10 #amount of time to wait while flying over/under obstacle before going back to .75m
+
 
 #########################
 # COORDINATE TRANSFORMS #
@@ -74,6 +82,12 @@ class ObstacleAvoider:
         self.rate = rospy.Rate(_RATE)
         
         self.current_marker = None
+
+        self.target_z = 0.75
+        self.start_time = 0.0
+        self.curr_time = 0.0
+        self.seen_recently = False
+
 
 
         # Boolean used to indicate if the streaming thread should be stopped
@@ -125,39 +139,53 @@ class ObstacleAvoider:
         positive y - down
         z - along nose forward
         '''
-
         
+
         smallest_dist = 1000
         for marker in msg.markers:
-            if (self.find__horiz_dist(marker) < smallest_dist):
+            if (self.find_horiz_dist(marker) < smallest_dist):
                 self.current_marker = marker
-                smallest_dist  = self.find_horiz_dist(marker)
+                smallest_dist = self.find_horiz_dist(marker)
         
-        if (self.current_marker is not None):
+        if (self.current_marker is not None and self.seen_recently is False):
+            
+            rospy.logerr('new marker found')
+            print(self.current_marker.id)
             self.check_dist()
+            self.current_marker = None
+            #print('set to none')
         
 
     def check_dist(self):
-        if self.find_horiz_distance(self.current_marker) <= 1.0:
-            if find_height_obst(self.current_marker) > .75:
+        print('horizdist: '+ str(self.find_horiz_dist(self.current_marker)))
+        if self.find_horiz_dist(self.current_marker) <= 1.0:
+            self.seen_recently = True
+            self.start_time =rospy.get_time()
+
+            if self.find_height_obst(self.current_marker) > .75:
                 #go under
+                print(self.find_height_obst(self.current_marker))
+                print(self.find_vert_dist(self.current_marker))
                 print("go under")
-                TARGET_Z = find_height_obst(self.current_marker) - 0.2
-                rospy.sleep(8)
-                TARGET_Z = 0.75
+                self.target_z = self.find_height_obst(self.current_marker) - 0.4
+                rospy.loginfo("set height: " + str(self.target_z))
             else:
                 #go over
+                print(self.find_height_obst(self.current_marker))
+                print(self.find_vert_dist(self.current_marker))
+
                 print('go over')
-                TARGET_Z = find_height_obst(self.current_marker) + 0.2
-                rospy.sleep(8)
-                TARGET_Z = 0.75
+                self.target_z = self.find_height_obst(self.current_marker) + 0.4 
+                rospy.loginfo("set height: "+ str(self.target_z))
+
+
         
     
 
-    def find_horiz_distance(self, tag):
+    def find_horiz_dist(self, tag):
         return tag.pose.pose.position.z
 
-    def find_vert_distance(self, tag):
+    def find_vert_dist(self, tag):
         #returns vertical distance between drone and AR tag
         #positive if AR tag is below drone
         #negative if AR tag is above drone
@@ -166,7 +194,7 @@ class ObstacleAvoider:
 
     def find_height_obst(self, tag):
         #return height of AR tag
-        return self.height - find_vert_distance(tag)
+        return self.height - self.find_vert_dist(tag)
 
     #############
     # STREAMING #
@@ -175,7 +203,7 @@ class ObstacleAvoider:
         """
         Start thread to stream velocity commands.
         """
-        rospy.logerr('start')
+        #rospy.logerr('start')
         self.offboard_command_streaming_thread = Thread(target=self.stream_offboard_velocity_setpoints)
         self.offboard_command_streaming_thread.start()
         
@@ -227,14 +255,21 @@ class ObstacleAvoider:
                 else:
                     set velocities using controller
             #else    '''
-            rospy.logerr('streaming')
-            if abs(TARGET_Z-self.height) > .1:
+            #rospy.logerr('streaming')
+            self.curr_time = rospy.get_time()
+
+
+            if abs(self.target_z -self.height) > .1:
                 self.vx =0.0
             else:
-                self.vx = 0.3
+                self.vx = 0.3 #CHANGE THIS BACK TO 0.3
             
-            
-            self.vz = KP_Z*(TARGET_Z-self.height)
+            if self.curr_time-self.start_time > WAIT_TIME:
+                self.target_z = 0.75
+                self.seen_recently = False
+                self.start_time = 0.0
+
+            self.vz = KP_Z*(self.target_z -self.height)
 
 
             #happens no matter what
