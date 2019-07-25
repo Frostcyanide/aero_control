@@ -11,6 +11,7 @@ from mavros_msgs.msg import State
 from threading import Thread
 import math
 import datetime
+from ar_track_alvar_msgs.msg import AlvarMarkers, AlvarMarker
 
 import sys, os
 sys.path.append(os.path.join(sys.path[0], '../..'))
@@ -53,11 +54,14 @@ class ObstacleAvoider:
         # Quaternion representing the rotation of the drone's body frame (bu) in the LENU frame. 
         # Initiallize to identity quaternion, as bu is aligned with lenu when the drone starts up.
         self.quat_bu_lenu = (0, 0, 0, 1)
+        self.height =0
 
         # A subscriber to the topic '/mavros/state'. self.state_sub_cb is called when a message of type 'State' is recieved
         self.state_sub = rospy.Subscriber("/mavros/state", State, self.state_sub_cb)
         # Flight mode of the drone ('OFFBOARD', 'POSCTL', 'MANUAL', etc.)
         self.mode = State().mode
+
+        self.ar_pose_sub = rospy.Subscriber("/ar_pose_marker",AlvarMarkers,self.ar_pose_cb) 
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
         self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
@@ -68,6 +72,9 @@ class ObstacleAvoider:
 
         # Publishing rate
         self.rate = rospy.Rate(_RATE)
+        
+        self.current_marker = None
+
 
         # Boolean used to indicate if the streaming thread should be stopped
         self.stopped = False
@@ -99,6 +106,68 @@ class ObstacleAvoider:
         self.mode = state.mode
 
 
+    def ar_pose_cb(self,msg):
+        '''Callback for when the drone sees an AR tag
+
+        Parameters
+        ----------
+        msg : ar_pose_marker
+            list of the poses of ALL the observed AR tags, with respect to the output frame.
+            The 1st is not necessarily the closest.
+            It can have a length of 0 - that indicates no AR tags were detected.
+        
+        TODO: figure out what current_marker should be
+        '''
+
+        '''
+        in forward camera frame
+        x  - right wing
+        positive y - down
+        z - along nose forward
+        '''
+
+        
+        smallest_dist = 1000
+        for marker in msg.markers:
+            if (self.find__horiz_dist(marker) < smallest_dist):
+                self.current_marker = marker
+                smallest_dist  = self.find_horiz_dist(marker)
+        
+        if (self.current_marker is not None):
+            self.check_dist()
+        
+
+    def check_dist(self):
+        if self.find_horiz_distance(self.current_marker) <= 1.0:
+            if find_height_obst(self.current_marker) > .75:
+                #go under
+                print("go under")
+                TARGET_Z = find_height_obst(self.current_marker) - 0.2
+                rospy.sleep(8)
+                TARGET_Z = 0.75
+            else:
+                #go over
+                print('go over')
+                TARGET_Z = find_height_obst(self.current_marker) + 0.2
+                rospy.sleep(8)
+                TARGET_Z = 0.75
+        
+    
+
+    def find_horiz_distance(self, tag):
+        return tag.pose.pose.position.z
+
+    def find_vert_distance(self, tag):
+        #returns vertical distance between drone and AR tag
+        #positive if AR tag is below drone
+        #negative if AR tag is above drone
+        return tag.pose.pose.position.y
+    
+
+    def find_height_obst(self, tag):
+        #return height of AR tag
+        return self.height - find_vert_distance(tag)
+
     #############
     # STREAMING #
     #############
@@ -106,8 +175,10 @@ class ObstacleAvoider:
         """
         Start thread to stream velocity commands.
         """
+        rospy.logerr('start')
         self.offboard_command_streaming_thread = Thread(target=self.stream_offboard_velocity_setpoints)
         self.offboard_command_streaming_thread.start()
+        
 
     def stop(self):
         """
@@ -156,21 +227,28 @@ class ObstacleAvoider:
                 else:
                     set velocities using controller
             #else    '''
-            self.vx = 0.5
-            self.vz = K_Z*(TARGET_Z-self.height)
+            rospy.logerr('streaming')
+            if abs(TARGET_Z-self.height) > .1:
+                self.vx =0.0
+            else:
+                self.vx = 0.3
+            
+            
+            self.vz = KP_Z*(TARGET_Z-self.height)
+
 
             #happens no matter what
             vx_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[0]
             vy_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[1]
             vz_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[2]
 
-            velsp__lenu.linear.x = vx_lenu
-            velsp__lenu.linear.y = vy_lenu
-            velsp__lenu.linear.z = vz_lenu
+            velsp__lenu.angular.x = 0.0
+            velsp__lenu.angular.y = 0.0
+            velsp__lenu.angular.z = 0.0
 
-            velsp__lenu.linear.x = min(max(vx,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.y = min(max(vy,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.z = min(max(vz,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
+            velsp__lenu.linear.x = min(max(vx_lenu,-_MAX_SPEED), _MAX_SPEED)
+            velsp__lenu.linear.y = min(max(vy_lenu,-_MAX_SPEED), _MAX_SPEED)
+            velsp__lenu.linear.z = min(max(vz_lenu,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
 
             
 
@@ -249,6 +327,7 @@ if __name__ == "__main__":
     cframe = 'bu' # Reference frame commands are given in
     controller = ObstacleAvoider(control_reference_frame=cframe)
     # Start streaming setpoint velocites
+    
     controller.start()
     rospy.spin()
     controller.stop()
@@ -259,16 +338,3 @@ if __name__ == "__main__":
     3-tuple is to total change in position desired
     '''
     
-
-    
-
-
-
-
-
-
-
-    ''' TODO-END '''
-
-    controller.wait()
-    controller.stop()
