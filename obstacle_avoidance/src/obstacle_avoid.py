@@ -2,10 +2,9 @@
 
 '''
 TODO:
-not rising at the right time
-rise higher?
-recalibrate
 nan tags?
+diagonal movement to reduce time
+problems with using time to wait : could use more time to travel vertically - not accurate
 '''
 ###########
 # IMPORTS #
@@ -38,10 +37,7 @@ DETECTION_THRESHOLD = 1.0 #1 m
 RISE_FALL_HEIGHT = 0.4
 NORMAL_TARGET_Z = 0.75
 VELOCITY_X = 0.4
-
-
-WAIT_TIME = 6 #amount of time to wait while flying over/under obstacle before going back to .75m
-
+TARGET_DISTANCE_TRAVELLED = 2
 
 #########################
 # COORDINATE TRANSFORMS #
@@ -90,12 +86,12 @@ class ObstacleAvoider:
         self.current_marker = None
 
         self.target_z = 0.75
-        self.start_time = 0.0
-        self.curr_time = 0.0
+       
+        self.start_x_pos = 0.0
+        self.curr_x_pos = 0.0
+        
+        #true if AR tag was seen within wait time
         self.seen_recently = False
-
-        self.start_position_x = 0.0
-
 
         # Boolean used to indicate if the streaming thread should be stopped
         self.stopped = False
@@ -115,7 +111,6 @@ class ObstacleAvoider:
                                 posestamped.pose.orientation.z, 
                                 posestamped.pose.orientation.w)
         self.height = posestamped.pose.position.z
-        self.position_x = posestamped.pose.position.x
 
     def state_sub_cb(self, state):
         """
@@ -168,23 +163,21 @@ class ObstacleAvoider:
         print('horizdist: '+ str(self.find_horiz_dist(self.current_marker)))
         if self.find_horiz_dist(self.current_marker) <= DETECTION_THRESHOLD:
             self.seen_recently = True
-            self.start_time =rospy.get_time()
+            self.start_x_pos = posestamped.pose.position.x
 
             if self.find_height_obst(self.current_marker) > NORMAL_TARGET_Z:
                 #go under
-                print(self.find_height_obst(self.current_marker))
-                print(self.find_vert_dist(self.current_marker))
+                #print(self.find_height_obst(self.current_marker))
+                #print(self.find_vert_dist(self.current_marker))
                 print("go under")
-                self.start_position_x = self.position_x
+                
                 self.target_z = self.find_height_obst(self.current_marker) - RISE_FALL_HEIGHT
                 rospy.logerr("set height: " + str(self.target_z))
             else:
                 #go over
-                print(self.find_height_obst(self.current_marker))
-                print(self.find_vert_dist(self.current_marker))
-
-                print('go over')
-                self.start_position_x = self.position_x
+                #print(self.find_height_obst(self.current_marker))
+                #print(self.find_vert_dist(self.current_marker))
+                print("go over")
                 self.target_z = self.find_height_obst(self.current_marker) + RISE_FALL_HEIGHT 
                 rospy.logerr("set height: "+ str(self.target_z))
 
@@ -266,21 +259,21 @@ class ObstacleAvoider:
                     set velocities using controller
             #else    '''
             #rospy.logerr('streaming')
-            self.curr_time = rospy.get_time()
+            self.curr_x_pos = posestamped.pose.position.x
 
 
             #or (seen_recently and self.position_x-self.start_position_x > 0.5 and abs(self.target_z -self.height) > .1:
 
+            #if we're not at the wanted height, don't move forward
             if abs(self.target_z -self.height) > .1:
                 self.vx =0.0
             else:
                 self.vx = VELOCITY_X 
             
-            if self.curr_time-self.start_time > WAIT_TIME:
+            if self.curr_x_pos - self.start_x_pos > TARGET_DISTANCE_TRAVELLED:
                 self.target_z = NORMAL_TARGET_Z
                 self.seen_recently = False
-                self.start_time = 0.0
-                self.start_position_x = 1000
+                self.start_x_pos = 0.0
 
             self.vz = KP_Z*(self.target_z -self.height)
 
@@ -328,47 +321,7 @@ class ObstacleAvoider:
                 self.rate.sleep()
             rospy.loginfo('Open loop controller: {} mode ...'.format(self.mode))
 
-    ###############
-    # TRANSLATION #
-    ###############
-    def translate(self, displacement, speed):
-        """
-        Given a displacement vector (dx, dy, dz) and a speed, sets the command velocities so that the drone moves from its current
-        location (x, y, z) to the point (x+dx, y+dy, z+dz),
-            Args:
-                - displacement = (dx, dy, dz) (m)
-                - speed = (m/s), must be positive
-        """
-        # Clip speed at _MAX_SPEED
-        speed = min(speed, _MAX_SPEED)
-        # Raise error if speed is 0 or not positive
-        if speed <= 0:
-            raise ValueError("Speed must be positive")
-        ''' TODO-START
-        Set self.vx, self.vy, self.vz to the correct speeds, and set the correct time 
-        for the velocity commands to be published for.
-        '''
-        move_time = math.sqrt(displacement[0]**2 + displacement[1]**2 + displacement[2]**2) / speed
 
-        self.vx = displacement[0]/move_time
-        self.vy = displacement[1]/move_time
-        self.vz = displacement[2]/move_time
-        
-        
-        ''' TODO-END'''
-        
-        rospy.loginfo('Open loop controller: Time of translation: {:.2f}'.format(move_time))
-        rospy.loginfo('Open loop controller: Displacement vector: {}'.format(displacement))
-        
-        # Wait for us to finish publishing velocities
-        rospy.sleep(move_time)
-
-        # Reset command velocites to 0
-        self.vx = self.vy = self.vz = 0
-        rospy.loginfo('Open loop controller: Done')
-
-
-    
 if __name__ == "__main__":
 
     # Create Controller instance
