@@ -179,8 +179,7 @@ class ObstacleAvoider:
                 #go over
                 #print(self.find_height_obst(self.current_marker))
                 #print(self.find_vert_dist(self.current_marker))
-
-                print('go over')
+                print("go over")
                 self.target_z = self.find_height_obst(self.current_marker) + RISE_FALL_HEIGHT 
                 rospy.logerr("set height: "+ str(self.target_z))
 
