@@ -37,10 +37,10 @@ KP_Z = 1.5 #1.5
 DETECTION_THRESHOLD = 1.0 #1 m
 RISE_FALL_HEIGHT = 0.4
 NORMAL_TARGET_Z = 0.75
-VELOCITY_X = 0.3
+VELOCITY_X = 0.4
 
 
-WAIT_TIME = 10 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 6 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
@@ -273,7 +273,6 @@ class ObstacleAvoider:
 
             if abs(self.target_z -self.height) > .1:
                 self.vx =0.0
-            el
             else:
                 self.vx = VELOCITY_X 
             
