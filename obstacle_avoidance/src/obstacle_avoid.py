@@ -4,6 +4,7 @@
 TODO:
 not rising at the right time
 rise higher?
+recalibrate
 '''
 ###########
 # IMPORTS #
@@ -168,7 +169,7 @@ class ObstacleAvoider:
                 print(self.find_vert_dist(self.current_marker))
                 print("go under")
                 self.target_z = self.find_height_obst(self.current_marker) - 0.4
-                rospy.loginfo("set height: " + str(self.target_z))
+                rospy.logerr("set height: " + str(self.target_z))
             else:
                 #go over
                 print(self.find_height_obst(self.current_marker))
@@ -176,7 +177,7 @@ class ObstacleAvoider:
 
                 print('go over')
                 self.target_z = self.find_height_obst(self.current_marker) + 0.4 
-                rospy.loginfo("set height: "+ str(self.target_z))
+                rospy.logerr("set height: "+ str(self.target_z))
 
 
         
@@ -259,10 +260,10 @@ class ObstacleAvoider:
             self.curr_time = rospy.get_time()
 
 
-            if abs(self.target_z -self.height) > .1:
+            if abs(self.target_z -self.height) > .1 or (seen_recently and find_horiz_dist(self.current_marker)<0.5 and self.height<self.target_z):
                 self.vx =0.0
             else:
-                self.vx = 0.3 #CHANGE THIS BACK TO 0.3
+                self.vx = 0.3 
             
             if self.curr_time-self.start_time > WAIT_TIME:
                 self.target_z = 0.75
