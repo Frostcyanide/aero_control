@@ -39,9 +39,6 @@ NORMAL_TARGET_Z = 0.75
 VELOCITY_X = 0.4
 TARGET_DISTANCE_TRAVELLED = 2
 
-WAIT_TIME = TARGET_DISTANCE_TRAVELLED/VELOCITY_X #amount of time to wait while flying over/under obstacle before going back to .75m
-
-
 #########################
 # COORDINATE TRANSFORMS #
 #########################
@@ -89,9 +86,10 @@ class ObstacleAvoider:
         self.current_marker = None
 
         self.target_z = 0.75
-        #time when AR tag is within 1m
-        self.start_time = 0.0
-        self.curr_time = 0.0
+       
+        self.start_x_pos = 0.0
+        self.curr_x_pos = 0.0
+        
         #true if AR tag was seen within wait time
         self.seen_recently = False
 
@@ -165,7 +163,7 @@ class ObstacleAvoider:
         print('horizdist: '+ str(self.find_horiz_dist(self.current_marker)))
         if self.find_horiz_dist(self.current_marker) <= DETECTION_THRESHOLD:
             self.seen_recently = True
-            self.start_time =rospy.get_time()
+            self.start_x_pos = posestamped.pose.position.x
 
             if self.find_height_obst(self.current_marker) > NORMAL_TARGET_Z:
                 #go under
@@ -261,7 +259,7 @@ class ObstacleAvoider:
                     set velocities using controller
             #else    '''
             #rospy.logerr('streaming')
-            self.curr_time = rospy.get_time()
+            self.curr_x_pos = posestamped.pose.position.x
 
 
             #or (seen_recently and self.position_x-self.start_position_x > 0.5 and abs(self.target_z -self.height) > .1:
@@ -272,10 +270,10 @@ class ObstacleAvoider:
             else:
                 self.vx = VELOCITY_X 
             
-            if self.curr_time-self.start_time > WAIT_TIME:
+            if self.curr_x_pos - self.start_x_pos > TARGET_DISTANCE_TRAVELLED:
                 self.target_z = NORMAL_TARGET_Z
                 self.seen_recently = False
-                self.start_time = 0.0
+                self.start_x_pos = 0.0
 
             self.vz = KP_Z*(self.target_z -self.height)
 
