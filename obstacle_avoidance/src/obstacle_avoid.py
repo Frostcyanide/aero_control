@@ -2,9 +2,9 @@
 
 '''
 TODO:
-nan tags?
 diagonal movement to reduce time
-problems with using time to wait : could use more time to travel vertically - not accurate
+
+change publisher to the one going to merge file
 '''
 ###########
 # IMPORTS #
