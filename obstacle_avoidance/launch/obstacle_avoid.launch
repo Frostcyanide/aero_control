@@ -8,8 +8,13 @@
   </node>
   
   <!-- Launch our code -->
-  <node name="obstacle_avoid" pkg="aero_control" type="obstacle_avoid.py" output="screen"/>
-  
+  <node name="obstacle_avoid" pkg="aero_control" type="obstacle_avoid.py" output="screen"/> 
+  <node name="detector" pkg="aero_control" type="detector.py" output="screen"/>
+  <node name="tracker" pkg="aero_control" type="tracker.py" output="screen"/>
+  <node name="velocity_merger" pkg="aero_control" type="velocity_merger.py" output="screen"/>
+
+
+ 
   <!-- Launch mavros -->
   <arg name="fcu_url" default="tcp://127.0.0.1:5760" />
   <arg name="gcs_url" default="" />

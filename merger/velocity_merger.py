@@ -14,7 +14,6 @@ from ar_track_alvar_msgs.msg import AlvarMarkers, AlvarMarker
 
 import sys, os
 sys.path.append(os.path.join(sys.path[0], '../..'))
-from common import coordinate_transforms
 
 #############
 # CONSTANTS #
@@ -26,28 +25,17 @@ _MAX_CLIMB_RATE = 0.5 # m/s
 ##############
 # CONTROLLER #
 ##############
-class velocityMerger:
+class VelocityMerger:
 
     def __init__(self):
         # Create node with name 'controller'
-        rospy.init_node('velocity merger')
+        rospy.init_node('velocity_merger')
     
-        self.obstacle_sub=rospy.Subscriber('/obstacle_avoid', Twist, self.obstacle_sub_cb)
+        self.obstacle_sub=rospy.Subscriber('/obstacle_avoid/vel', Twist, self.obstacle_sub_cb)
         
-        self.tracker_sub = rospy.Subscriber('/tracker', Twist, self.tracker_sub_cb)
+        self.tracker_sub = rospy.Subscriber('/tracker/vel', Twist, self.tracker_sub_cb)
         
-         self.velocity_pub=rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size=1)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        self.velocity_pub=rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size=1)
         
         
 
@@ -63,26 +51,19 @@ class velocityMerger:
         # Flight mode of the drone ('OFFBOARD', 'POSCTL', 'MANUAL', etc.)
         self.mode = State().mode
 
-        self.ar_pose_sub = rospy.Subscriber("/ar_pose_marker",AlvarMarkers,self.ar_pose_cb) 
-
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
         self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
         # Initialize linear setpoint velocities
-        self.vx = 0
-        self.vy = 0
-        self.vz = 0
+        self.line_vx = 0
+        self.line_vy = 0
+        self.line_angular_z = 0
+
+        self.obs_vz = 0
 
         # Publishing rate
         self.rate = rospy.Rate(_RATE)
         
         self.current_marker = None
-
-        self.target_z = 0.75
-        self.start_time = 0.0
-        self.curr_time = 0.0
-        self.seen_recently = False
-
-        self.start_position_x = 0.0
 
 
         # Boolean used to indicate if the streaming thread should be stopped
@@ -92,13 +73,36 @@ class velocityMerger:
     ######################
     # CALLBACK FUNCTIONS #
     ######################
+    def pos_sub_cb(self, posestamped):
+        """
+        Updates the orientation the drone (the bu frame) related to the lenu frame
+            Args: 
+                - posestamped = ROS PoseStamped message
+        """
+        self.quat_bu_lenu = (   posestamped.pose.orientation.x, 
+                                posestamped.pose.orientation.y, 
+                                posestamped.pose.orientation.z, 
+                                posestamped.pose.orientation.w)
+        self.height = posestamped.pose.position.z
+
+    def state_sub_cb(self, state):
+        """
+        Callback function which is called when a new message of type State is recieved 
+        by self.state_subscriber to update the drone's mode (MANUAL, POSCTL, or OFFBOARD)
+            
+            Args:
+                - state = mavros State message
+        """
+        self.mode = state.mode
     
-    
-    def obstacle_sub_cb(self, command):
+    def obstacle_sub_cb(self, msg):
+        self.obs_vz = msg.linear.z
         
         
-    def tracker_sub_cb(self, command):
-        
+    def tracker_sub_cb(self, msg):
+        self.line_vx = msg.linear.x
+        self.line_vy = msg.linear.y
+        self.line_angular_z = msg.angular.z
     
     
     
@@ -182,34 +186,15 @@ class velocityMerger:
 
             #or (seen_recently and self.position_x-self.start_position_x > 0.5 and abs(self.target_z -self.height) > .1:
 
-            if abs(self.target_z -self.height) > .1:
-                self.vx =0.0
-            else:
-                self.vx = VELOCITY_X 
-            
-            if self.curr_time-self.start_time > WAIT_TIME:
-                self.target_z = NORMAL_TARGET_Z
-                self.seen_recently = False
-                self.start_time = 0.0
-                self.start_position_x = 1000
-
-            self.vz = KP_Z*(self.target_z -self.height)
-
-
-            #happens no matter what
-            vx_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[0]
-            vy_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[1]
-            vz_lenu = coord_transforms.get_v__lenu((self.vx, self.vy, self.vz), 'bu', self.quat_bu_lenu)[2]
-
             velsp__lenu.angular.x = 0.0
             velsp__lenu.angular.y = 0.0
-            velsp__lenu.angular.z = 0.0
+            velsp__lenu.angular.z = self.line_angular_z
 
-            velsp__lenu.linear.x = min(max(vx_lenu,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.y = min(max(vy_lenu,-_MAX_SPEED), _MAX_SPEED)
-            velsp__lenu.linear.z = min(max(vz_lenu,-_MAX_CLIMB_RATE), _MAX_CLIMB_RATE)
-
-            
+            #print(self.line_vx)
+            #print(self.line_vy)
+            velsp__lenu.linear.x = self.line_vx
+            velsp__lenu.linear.y = self.line_vy
+            velsp__lenu.linear.z = self.obs_vz
 
             # Publish setpoint velocity
             self.velocity_pub.publish(velsp__lenu)
@@ -283,8 +268,7 @@ class velocityMerger:
 if __name__ == "__main__":
 
     # Create Controller instance
-    cframe = 'bu' # Reference frame commands are given in
-    controller = ObstacleAvoider(control_reference_frame=cframe)
+    controller = VelocityMerger()
     # Start streaming setpoint velocites
     
     controller.start()

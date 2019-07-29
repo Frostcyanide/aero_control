@@ -2,9 +2,9 @@
 
 '''
 TODO:
+nan tags?
 diagonal movement to reduce time
-
-change publisher to the one going to merge file
+problems with using time to wait : could use more time to travel vertically - not accurate
 '''
 ###########
 # IMPORTS #
@@ -36,8 +36,11 @@ KP_Z = 1.5 #1.5
 DETECTION_THRESHOLD = 1.0 #1 m
 RISE_FALL_HEIGHT = 0.4
 NORMAL_TARGET_Z = 0.75
-VELOCITY_X = 0.4
+VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
+
+WAIT_TIME = TARGET_DISTANCE_TRAVELLED/VELOCITY_X #amount of time to wait while flying over/under obstacle before going back to .75m
+
 
 #########################
 # COORDINATE TRANSFORMS #
@@ -74,7 +77,7 @@ class ObstacleAvoider:
         self.ar_pose_sub = rospy.Subscriber("/ar_pose_marker",AlvarMarkers,self.ar_pose_cb) 
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
-        self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
+        self.velocity_pub = rospy.Publisher('/obstacle_avoid/vel', Twist, queue_size = 1)
         # Initialize linear setpoint velocities
         self.vx = 0
         self.vy = 0
@@ -86,10 +89,9 @@ class ObstacleAvoider:
         self.current_marker = None
 
         self.target_z = 0.75
-       
-        self.start_x_pos = 0.0
-        self.curr_x_pos = 0.0
-        
+        #time when AR tag is within 1m
+        self.start_time = 0.0
+        self.curr_time = 0.0
         #true if AR tag was seen within wait time
         self.seen_recently = False
 
@@ -163,7 +165,7 @@ class ObstacleAvoider:
         print('horizdist: '+ str(self.find_horiz_dist(self.current_marker)))
         if self.find_horiz_dist(self.current_marker) <= DETECTION_THRESHOLD:
             self.seen_recently = True
-            self.start_x_pos = posestamped.pose.position.x
+            self.start_time =rospy.get_time()
 
             if self.find_height_obst(self.current_marker) > NORMAL_TARGET_Z:
                 #go under
@@ -172,12 +174,14 @@ class ObstacleAvoider:
                 print("go under")
                 
                 self.target_z = self.find_height_obst(self.current_marker) - RISE_FALL_HEIGHT
+                self.vx = VELOCITY_X + 0.1
                 rospy.logerr("set height: " + str(self.target_z))
             else:
                 #go over
                 #print(self.find_height_obst(self.current_marker))
                 #print(self.find_vert_dist(self.current_marker))
                 print("go over")
+                self.vx = VELOCITY_X + 0.1
                 self.target_z = self.find_height_obst(self.current_marker) + RISE_FALL_HEIGHT 
                 rospy.logerr("set height: "+ str(self.target_z))
 
@@ -259,7 +263,7 @@ class ObstacleAvoider:
                     set velocities using controller
             #else    '''
             #rospy.logerr('streaming')
-            self.curr_x_pos = posestamped.pose.position.x
+            self.curr_time = rospy.get_time()
 
 
             #or (seen_recently and self.position_x-self.start_position_x > 0.5 and abs(self.target_z -self.height) > .1:
@@ -270,10 +274,10 @@ class ObstacleAvoider:
             else:
                 self.vx = VELOCITY_X 
             
-            if self.curr_x_pos - self.start_x_pos > TARGET_DISTANCE_TRAVELLED:
+            if self.curr_time-self.start_time > WAIT_TIME:
                 self.target_z = NORMAL_TARGET_Z
                 self.seen_recently = False
-                self.start_x_pos = 0.0
+                self.start_time = 0.0
 
             self.vz = KP_Z*(self.target_z -self.height)
 

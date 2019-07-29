@@ -30,7 +30,7 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND = 40 # Number of pixels forward to extrapolate the line
+EXTEND = 35 # Number of pixels forward to extrapolate the line
 KP_X = .015 #.01
 KP_Y = .009 #.009
 KP_Z = 1.5 #1.5
@@ -80,7 +80,7 @@ class LineController:
         self.tracker_image_pub = rospy.Publisher('/tracker_image', Image, queue_size=1)
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
-        self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
+        self.velocity_pub = rospy.Publisher('/tracker/vel', Twist, queue_size = 1)
 
         # Linear setpoint velocities in downward camera frame
         self.vx__dc = 0.0
@@ -180,7 +180,7 @@ class LineController:
                 image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
-                rospy.loginfo(self.vz__dc)
+                #rospy.loginfo(self.vz__dc)
                 
 
         else:
@@ -192,7 +192,7 @@ class LineController:
                 image_msg = self.bridge.cv2_to_imgmsg(image, "rgb8")
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
-                rospy.loginfo(self.vz__dc)
+                #rospy.loginfo(self.vz__dc)
 
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND (in pixels) from the closest point on the line
@@ -281,6 +281,7 @@ class LineController:
             velsp__lenu.angular.z = min(max(wz,-_MAX_ROTATION_RATE), _MAX_ROTATION_RATE)
 
             # Publish setpoint velocity
+            #print(velsp__lenu.linear.x)
             self.velocity_pub.publish(velsp__lenu)
 
             # Publish velocity at the specified rate
