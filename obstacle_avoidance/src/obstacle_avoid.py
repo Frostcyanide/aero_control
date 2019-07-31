@@ -39,7 +39,7 @@ NORMAL_TARGET_Z = 0.75
 VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
 
-WAIT_TIME = TARGET_DISTANCE_TRAVELLED/VELOCITY_X #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 5 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
@@ -78,6 +78,9 @@ class ObstacleAvoider:
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
         self.velocity_pub = rospy.Publisher('/obstacle_avoid/vel', Twist, queue_size = 1)
+
+        self.velocity_sub = rospy.Subscriber('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, self.vel_sub_cb)
+
         # Initialize linear setpoint velocities
         self.vx = 0
         self.vy = 0
@@ -95,6 +98,8 @@ class ObstacleAvoider:
         #true if AR tag was seen within wait time
         self.seen_recently = False
 
+        self.published_vx = 0
+
         # Boolean used to indicate if the streaming thread should be stopped
         self.stopped = False
 
@@ -102,6 +107,9 @@ class ObstacleAvoider:
     ######################
     # CALLBACK FUNCTIONS #
     ######################
+    def vel_sub_cb(self, velocities):
+        self.published_vx = velocities.linear.x
+
     def pos_sub_cb(self, posestamped):
         """
         Updates the orientation the drone (the bu frame) related to the lenu frame
@@ -167,21 +175,21 @@ class ObstacleAvoider:
             self.seen_recently = True
             self.start_time =rospy.get_time()
 
-            if self.find_height_obst(self.current_marker) > NORMAL_TARGET_Z:
+            if self.current_marker.id%2 != 0:
                 #go under
                 #print(self.find_height_obst(self.current_marker))
                 #print(self.find_vert_dist(self.current_marker))
                 print("go under")
                 
                 self.target_z = self.find_height_obst(self.current_marker) - RISE_FALL_HEIGHT
-                self.vx = VELOCITY_X + 0.1
+                self.vx = 0
                 rospy.logerr("set height: " + str(self.target_z))
             else:
                 #go over
                 #print(self.find_height_obst(self.current_marker))
                 #print(self.find_vert_dist(self.current_marker))
                 print("go over")
-                self.vx = VELOCITY_X + 0.1
+                self.vx = 0.1
                 self.target_z = self.find_height_obst(self.current_marker) + RISE_FALL_HEIGHT 
                 rospy.logerr("set height: "+ str(self.target_z))
 
@@ -270,9 +278,10 @@ class ObstacleAvoider:
 
             #if we're not at the wanted height, don't move forward
             if abs(self.target_z -self.height) > .1:
-                self.vx =0.0
+                self.vx = -self.published_vx
             else:
-                self.vx = VELOCITY_X 
+                self.vx = 0
+            
             
             if self.curr_time-self.start_time > WAIT_TIME:
                 self.target_z = NORMAL_TARGET_Z

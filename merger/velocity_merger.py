@@ -59,6 +59,7 @@ class VelocityMerger:
         self.line_angular_z = 0
 
         self.obs_vz = 0
+        self.obs_vx = 0
 
         # Publishing rate
         self.rate = rospy.Rate(_RATE)
@@ -97,6 +98,7 @@ class VelocityMerger:
     
     def obstacle_sub_cb(self, msg):
         self.obs_vz = msg.linear.z
+        self.obs_vx = msg.linear.x
         
         
     def tracker_sub_cb(self, msg):
@@ -192,7 +194,7 @@ class VelocityMerger:
 
             #print(self.line_vx)
             #print(self.line_vy)
-            velsp__lenu.linear.x = self.line_vx
+            velsp__lenu.linear.x = self.line_vx + self.obs_vx
             velsp__lenu.linear.y = self.line_vy
             velsp__lenu.linear.z = self.obs_vz
 
