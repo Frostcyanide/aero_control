@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+'''
+oscillating too much change y gains
+go faster over tag
+increase x gains
+increase yaw gains
+
+'''
 ###########
 # IMPORTS #
 ###########
@@ -32,7 +39,7 @@ IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
 EXTEND = 35 # Number of pixels forward to extrapolate the line
 KP_X = .01 #.01
-KP_Y = .009 #.009
+KP_Y = .007 #.009
 KP_Z = 1.5 #1.5
 KP_Z_W = 1
 TARGET_Z = 0.7
