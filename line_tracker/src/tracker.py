@@ -31,7 +31,7 @@ IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
 EXTEND = 35 # Number of pixels forward to extrapolate the line
-KP_X = .015 #.01
+KP_X = .01 #.01
 KP_Y = .009 #.009
 KP_Z = 1.5 #1.5
 KP_Z_W = 1
@@ -57,6 +57,9 @@ class LineController:
         # Create node with name 'tracker'
         rospy.init_node('tracker')
 
+        # Initialize instance of CvBridge to convert images between OpenCV images and ROS images
+        self.bridge = CvBridge()
+        
         # A subscriber to the topic '/mavros/local_position/pose. self.pos_sub_cb is called when a message of type 'PoseStamped' is recieved 
         self.pos_sub = rospy.Subscriber('/mavros/local_position/pose', PoseStamped, self.pos_sub_cb)
         # Quaternion representing the rotation of the drone's body frame in the NED frame. initiallize to identity quaternion
@@ -91,9 +94,6 @@ class LineController:
         self.wz__dc = 0.0
 
         self.height = 0.0
-
-        # Initialize instance of CvBridge to convert images between OpenCV images and ROS images
-        self.bridge = CvBridge()
 
         # Publishing rate
         self.rate = rospy.Rate(_RATE)

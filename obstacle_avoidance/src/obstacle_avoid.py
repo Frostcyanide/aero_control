@@ -2,7 +2,8 @@
 
 '''
 TODO:
-nan tags?
+extend less to slow down
+adjust gains in x directions
 diagonal movement to reduce time
 problems with using time to wait : could use more time to travel vertically - not accurate
 '''
@@ -39,7 +40,7 @@ NORMAL_TARGET_Z = 0.75
 VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
 
-WAIT_TIME = 5 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 4.5 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
@@ -160,19 +161,19 @@ class ObstacleAvoider:
                 self.current_marker = marker
                 smallest_dist = self.find_horiz_dist(marker)
         
-        if (self.current_marker is not None and self.seen_recently is False):
+        if (self.current_marker is not None and (self.curr_time - self.start_time > WAIT_TIME)):
             
             rospy.logerr('new marker found')
             print(self.current_marker.id)
             self.check_dist()
-            self.current_marker = None
+            
             #print('set to none')
+        self.current_marker = None
         
 
     def check_dist(self):
         print('horizdist: '+ str(self.find_horiz_dist(self.current_marker)))
         if self.find_horiz_dist(self.current_marker) <= DETECTION_THRESHOLD:
-            self.seen_recently = True
             self.start_time =rospy.get_time()
 
             if self.current_marker.id%2 != 0:
@@ -189,13 +190,11 @@ class ObstacleAvoider:
                 #print(self.find_height_obst(self.current_marker))
                 #print(self.find_vert_dist(self.current_marker))
                 print("go over")
-                self.vx = 0.1
+                self.vx = 0.2
                 self.target_z = self.find_height_obst(self.current_marker) + RISE_FALL_HEIGHT 
                 rospy.logerr("set height: "+ str(self.target_z))
 
 
-        
-    
 
     def find_horiz_dist(self, tag):
         return tag.pose.pose.position.z
@@ -285,8 +284,8 @@ class ObstacleAvoider:
             
             if self.curr_time-self.start_time > WAIT_TIME:
                 self.target_z = NORMAL_TARGET_Z
-                self.seen_recently = False
                 self.start_time = 0.0
+                #rospy.logerr('time ended')
 
             self.vz = KP_Z*(self.target_z -self.height)
 
