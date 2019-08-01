@@ -39,9 +39,9 @@ IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
 EXTEND = 35 # Number of pixels forward to extrapolate the line
 KP_X = .015 #.01
-KP_Y = .008 #.009
+KP_Y = .007#.009
 KP_Z = 1.5 #1.5
-KP_Z_W = 3.7
+KP_Z_W = 3
 TARGET_Z = 0.7
 DISPLAY = True
 
