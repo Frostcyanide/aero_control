@@ -41,7 +41,7 @@ EXTEND = 35 # Number of pixels forward to extrapolate the line
 KP_X = .015 #.01
 KP_Y = .008 #.009
 KP_Z = 1.5 #1.5
-KP_Z_W = 3
+KP_Z_W = 3.7
 TARGET_Z = 0.7
 DISPLAY = True
 
