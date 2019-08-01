@@ -31,7 +31,7 @@ _RATE = 10 # (Hz) rate for rospy.rate
 _MAX_SPEED = 1 # (m/s)
 _MAX_CLIMB_RATE = 0.5 # m/s 
 _COORDINATE_FRAMES = {'lenu','lned','bu','bd','dc','fc'}
-#KP_X = .015 #.01
+TRACKER_KP_X = .015 #.01
 #KP_Y = .009 #.009
 KP_Z = 1.5 #1.5
 DETECTION_THRESHOLD = 1.0 #1 m
@@ -39,14 +39,15 @@ RISE_FALL_HEIGHT = 0.4
 NORMAL_TARGET_Z = 0.75
 VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
+TRACKER_EXTEND = 35
 
-WAIT_TIME = 4.5 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 1 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
 # COORDINATE TRANSFORMS #
 #########################
-# Create CoordTransforms instance
+#Create CoordTransforms instance
 coord_transforms = coordinate_transforms.CoordTransforms()
 
 ##############
@@ -183,7 +184,7 @@ class ObstacleAvoider:
                 print("go under")
                 
                 self.target_z = self.find_height_obst(self.current_marker) - RISE_FALL_HEIGHT
-                self.vx = 0
+                self.vx = 0.2
                 rospy.logerr("set height: " + str(self.target_z))
             else:
                 #go over
