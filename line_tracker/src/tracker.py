@@ -33,11 +33,11 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND_STRAIGHT = 30 # Number of pixels forward to extrapolate the line
-KP_X_STRAIGHT = .01 #.013
-KP_Y_STRAIGHT = .007#.007
-KP_Z_STRAIGHT = 1.5 # ignore this
-KP_Z_STRAIGHT_W = 2 #2
+EXTEND_STRAIGHT = 40 # Number of pixels forward to extrapolate the line
+KP_X_STRAIGHT = .015 #.01
+KP_Y_STRAIGHT = .009 #.009
+KP_Z_STRAIGHT = 1.5 #1.5
+KP_Z_STRAIGHT_W = 1
 
 '''EXTEND_CURVE = 20
 KP_X_CURVE = 0.005
