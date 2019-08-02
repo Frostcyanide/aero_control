@@ -38,6 +38,7 @@ KP_X_STRAIGHT = .01 #.013
 KP_Y_STRAIGHT = .007#.007
 KP_Z_STRAIGHT = 1.5 # ignore this
 KP_Z_STRAIGHT_W = 2 #2
+KD=1
 
 '''EXTEND_CURVE = 20
 KP_X_CURVE = 0.005
@@ -263,9 +264,9 @@ class LineController:
         secondDerivative_y=error[1]-prev_error[1]
         secondDerivative_zw=error[2]-prev_error[2]
        
-        self.vx_dc+=secondDerivative_x*rate
-        self.vy_dc+=secondDerivative_y*rate
-        self.wz_dc+=secondDerivative_zw*rate
+        self.vx_dc+=KD*secondDerivative_x*rate
+        self.vy_dc+=KD*secondDerivative_y*rate
+        self.wz_dc+=KD*secondDerivative_zw*rate
             
     def integralControl(self,past_errors):
         return
