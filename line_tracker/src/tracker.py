@@ -33,11 +33,20 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
+<<<<<<< HEAD
 EXTEND_STRAIGHT = 40 # Number of pixels forward to extrapolate the line
 KP_X_STRAIGHT = .015 #.01
 KP_Y_STRAIGHT = .009 #.009
 KP_Z_STRAIGHT = 1.5 #1.5
 KP_Z_STRAIGHT_W = 1
+=======
+EXTEND_STRAIGHT = 30 # Number of pixels forward to extrapolate the line
+KP_X_STRAIGHT = .004 #.013
+KP_Y_STRAIGHT = .006#.007
+KP_Z_STRAIGHT = 1.5 # ignore this
+KP_Z_STRAIGHT_W = 2 #2
+KD=1
+>>>>>>> 4bd636a04e8388be4f67556f02da264c20bd71f3
 
 '''EXTEND_CURVE = 20
 KP_X_CURVE = 0.005
@@ -109,6 +118,9 @@ class LineController:
 
         # Boolean used to indicate if the streaming thread should be stopped
         self.stopped = False
+        
+        self.error=np.array([0.0,0.0,0.0])
+        self.prev_error=np.array([0.0,0.0,0.0])
 
 
     ######################
@@ -180,14 +192,22 @@ class LineController:
                 self.vx__dc =KP_X_CURVE*error[0]
                 self.vy__dc =KP_Y_CURVE*error[1]
                 self.wz__dc = KP_Z_CURVE_W*error_angle
-            else:'''
+                
+                self.prev_error=self.error
+                self.error=np.append(V,vy/vx)
+                self.derivativeControl(self.prev_error,self.error)
 
-            '''target=(closest[0]+EXTEND_STRAIGHT*U[0], closest[1]+EXTEND_STRAIGHT*U[1])
+            target=(closest[0]+EXTEND_STRAIGHT*U[0], closest[1]+EXTEND_STRAIGHT*U[1])
             error =  (target[0]-CENTER[0],target[1]-CENTER[1])'''
 
             self.vx__dc =KP_X_STRAIGHT*error[0]
             self.vy__dc =KP_Y_STRAIGHT*error[1]
             self.wz__dc = KP_Z_STRAIGHT_W*error_angle
+            
+            self.prev_error=self.error
+            self.error=np.append(V,vy/vx)
+            self.derivativeControl(self.prev_error,self.error)
+            
 
             #y super off
             '''elif abs(error[1])>40:
@@ -198,9 +218,6 @@ class LineController:
                 self.wz__dc = KP_Y_CURVE*error[1]'''
 
             #on as straight line    
-            
-
-
             if DISPLAY:
                 image = self.image.copy()
                 # Draw circle at closest 
@@ -226,7 +243,9 @@ class LineController:
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
                 #rospy.loginfo(self.vz__dc)
-
+                
+        
+        
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND_STRAIGHT (in pixels) from the closest point on the line
 
@@ -240,6 +259,25 @@ class LineController:
         
 
         '''TODO-END '''
+        
+    def derivativeControl(self,prev_error,error):
+        
+        '''
+        Takes the difference between the error now and the last error
+        If the difference is increasing we will increase control over KP in that respective axis
+        if the difference is decreasing we will decrease control over KP
+        
+        '''
+        secondDerivative_x=error[0]-prev_error[0]
+        secondDerivative_y=error[1]-prev_error[1]
+        secondDerivative_zw=error[2]-prev_error[2]
+       
+        self.vx_dc+=KD*secondDerivative_x*rate
+        self.vy_dc+=KD*secondDerivative_y*rate
+        self.wz_dc+=KD*secondDerivative_zw*rate
+            
+    def integralControl(self,past_errors):
+        return
 
 
         ### DO NOT MODIFY ###
