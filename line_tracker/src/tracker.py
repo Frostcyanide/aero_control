@@ -194,6 +194,11 @@ class LineController:
             self.vx__dc =KP_X_STRAIGHT*error[0]
             self.vy__dc =KP_Y_STRAIGHT*error[1]
             self.wz__dc = KP_Z_STRAIGHT_W*error_angle
+            
+            self.prev_error=self.error
+            self.error=np.append(V,vy/vx)
+            self.derivativeControl(self.prev_error,self.error)
+            
 
             #y super off
             '''elif abs(error[1])>40:
@@ -204,9 +209,6 @@ class LineController:
                 self.wz__dc = KP_Y_CURVE*error[1]'''
 
             #on as straight line    
-            
-
-
             if DISPLAY:
                 image = self.image.copy()
                 # Draw circle at closest 
