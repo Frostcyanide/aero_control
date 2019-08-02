@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 '''
-
+start to inch up x gains to go faster but it's looking more stable
+came down on top of AR tag because it was too slow
+go up by 50%
+still need to test on curves
 '''
 ###########
 # IMPORTS #
@@ -33,7 +36,7 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND_STRAIGHT = 30 # Number of pixels forward to extrapolate the line
+EXTEND_STRAIGHT = 60 # Number of pixels forward to extrapolate the line
 KP_X_STRAIGHT = .004 #.013
 KP_Y_STRAIGHT = .006#.007
 KP_Z_STRAIGHT = 1.5 # ignore this
@@ -196,9 +199,9 @@ class LineController:
             self.vy__dc =KP_Y_STRAIGHT*error[1]
             self.wz__dc = KP_Z_STRAIGHT_W*error_angle
             
-            self.prev_error=self.error
+            '''self.prev_error=self.error
             self.error=np.append(V,vy/vx)
-            self.derivativeControl(self.prev_error,self.error)
+            self.derivativeControl(self.prev_error,self.error)'''
             
 
             #y super off
@@ -264,9 +267,9 @@ class LineController:
         secondDerivative_y=error[1]-prev_error[1]
         secondDerivative_zw=error[2]-prev_error[2]
        
-        self.vx_dc+=KD*secondDerivative_x*rate
-        self.vy_dc+=KD*secondDerivative_y*rate
-        self.wz_dc+=KD*secondDerivative_zw*rate
+        '''self.vx__dc+=KD*secondDerivative_x*_RATE
+        self.vy__dc+=KD*secondDerivative_y*_RATE
+        self.wz__dc+=KD*secondDerivative_zw*_RATE'''
             
     def integralControl(self,past_errors):
         return
