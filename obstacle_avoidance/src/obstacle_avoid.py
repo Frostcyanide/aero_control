@@ -36,12 +36,12 @@ TRACKER_KP_X = .015 #.01
 KP_Z = 1.5 #1.5
 DETECTION_THRESHOLD = 1.0 #1 m
 RISE_FALL_HEIGHT = 0.4
-NORMAL_TARGET_Z = 0.75
+NORMAL_TARGET_Z = 0.7
 VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
 TRACKER_EXTEND = 35
 
-WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 1 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 2 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
