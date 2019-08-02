@@ -36,7 +36,6 @@ CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame
 EXTEND_STRAIGHT = 35 # Number of pixels forward to extrapolate the line
 KP_X_STRAIGHT = .013 #.01
 KP_Y_STRAIGHT = .007#.009
-KP_Z_STRAIGHT = 1.5 # ignore this
 KP_Z_STRAIGHT_W = 2
 
 EXTEND_CURVE = 25
@@ -109,6 +108,9 @@ class LineController:
 
         # Boolean used to indicate if the streaming thread should be stopped
         self.stopped = False
+        
+        self.error=np.array([0.0,0.0,0.0])
+        self.prev_error=np.array([0.0,0.0,0.0])
 
 
     ######################
@@ -178,6 +180,10 @@ class LineController:
                 self.vx__dc =KP_X_CURVE*error[0]
                 self.vy__dc =KP_Y_CURVE*error[1]
                 self.wz__dc = KP_Z_CURVE_W*error_angle
+                
+                self.prev_error=self.error
+                self.error=np.append(V,vy/vx)
+                self.derivativeControl(self.prev_error,self.error)
 
             #on as straight line    
             else:
@@ -213,7 +219,9 @@ class LineController:
                 # Publish annotated image
                 self.tracker_image_pub.publish(image_msg)
                 #rospy.loginfo(self.vz__dc)
-
+                
+        
+        
         # Find the closest point on the line to the center of the image
         # and aim for a point a distance of EXTEND_STRAIGHT (in pixels) from the closest point on the line
 
@@ -227,6 +235,25 @@ class LineController:
         
 
         '''TODO-END '''
+        
+    def derivativeControl(self,prev_error,error):
+        
+        '''
+        Takes the difference between the error now and the last error
+        If the difference is increasing we will increase control over KP in that respective axis
+        if the difference is decreasing we will decrease control over KP
+        
+        '''
+        secondDerivative_x=error[0]-prev_error[0]
+        secondDerivative_y=error[1]-prev_error[1]
+        secondDerivative_zw=error[2]-prev_error[2]
+       
+        self.vx_dc+=secondDerivative_x*rate
+        self.vy_dc+=secondDerivative_y*rate
+        self.wz_dc+=secondDerivative_zw*rate
+            
+    def integralControl(self,past_errors):
+        return
 
 
         ### DO NOT MODIFY ###
