@@ -131,6 +131,8 @@ class LineDetector:
                     box = cv2.boxPoints(rect)
                     box = np.int0(box)
                     cv2.drawContours(image, [box],0,(0,0,255),2)
+
+                    cv2.drawContours(image, contours, 0, (255, 0, 0), 2)
                     
                     #draw point
                     cv2.circle(image, (x, y), 2, (0,0,255), -10)

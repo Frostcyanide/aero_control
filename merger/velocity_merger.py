@@ -35,8 +35,6 @@ class VelocityMerger:
         
         self.tracker_sub = rospy.Subscriber('/tracker/vel', Twist, self.tracker_sub_cb)
         
-        self.velocity_pub=rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size=1)
-        
         
 
         # A subscriber to the topic '/mavros/local_position/pose. self.pos_sub_cb is called when a message of type 'PoseStamped' is recieved 
@@ -52,7 +50,7 @@ class VelocityMerger:
         self.mode = State().mode
 
         # A publisher which will publish the desired linear and anglar velocity to the topic '/setpoint_velocity/cmd_vel_unstamped'
-        self.velocity_pub = rospy.Publisher('/mavros/setpoint_velocity/cmd_vel_unstamped', Twist, queue_size = 1)
+        self.velocity_pub = rospy.Publisher('/published_vel_cmd', Twist, queue_size = 1)
         # Initialize linear setpoint velocities
         self.line_vx = 0
         self.line_vy = 0

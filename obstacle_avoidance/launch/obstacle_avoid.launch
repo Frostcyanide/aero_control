@@ -12,6 +12,7 @@
   <node name="detector" pkg="aero_control" type="detector.py" output="screen"/>
   <node name="tracker" pkg="aero_control" type="tracker.py" output="screen"/>
   <node name="velocity_merger" pkg="aero_control" type="velocity_merger.py" output="screen"/>
+  <node pkg="aero_control" type="land_controller.pyo" name="land_controller" output="screen"/>
 
 
  
