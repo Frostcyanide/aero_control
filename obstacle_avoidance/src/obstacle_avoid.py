@@ -41,7 +41,7 @@ VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
 TRACKER_EXTEND = 35
 
-WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 2 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 1 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
@@ -162,7 +162,7 @@ class ObstacleAvoider:
                 self.current_marker = marker
                 smallest_dist = self.find_horiz_dist(marker)
         
-        if (self.current_marker is not None and (self.curr_time - self.start_time > WAIT_TIME)):
+        if (self.current_marker is not None and self.current_marker.id != 0 and (self.curr_time - self.start_time > WAIT_TIME)):
             
             rospy.logerr('new marker found')
             print(self.current_marker.id)
