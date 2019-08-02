@@ -33,16 +33,16 @@ _MAX_ROTATION_RATE = .5 # rad/s
 IMAGE_HEIGHT = 128
 IMAGE_WIDTH = 128
 CENTER = np.array([IMAGE_WIDTH//2, IMAGE_HEIGHT//2]) # Center of the image frame. We will treat this as the center of mass of the drone
-EXTEND_STRAIGHT = 35 # Number of pixels forward to extrapolate the line
-KP_X_STRAIGHT = .0012 #.013
+EXTEND_STRAIGHT = 30 # Number of pixels forward to extrapolate the line
+KP_X_STRAIGHT = .01 #.013
 KP_Y_STRAIGHT = .007#.007
 KP_Z_STRAIGHT = 1.5 # ignore this
-KP_Z_STRAIGHT_W = 1.5 #2
+KP_Z_STRAIGHT_W = 2 #2
 
-EXTEND_CURVE = 20
+'''EXTEND_CURVE = 20
 KP_X_CURVE = 0.005
-KP_Y_CURVE = 0.015 # turned up y and yaw from 0.13 and 3.5
-KP_Z_CURVE_W = 4
+KP_Y_CURVE = 0.008 # turned up y from 0.013
+KP_Z_CURVE_W = 3.5'''
 
 TARGET_Z = 0.7
 DISPLAY = True
@@ -166,31 +166,39 @@ class LineController:
                 U[0] = -U[0]
 
             closest = (x+np.dot(U,V)*U[0],y+np.dot(U,V)*U[1])
+            target=(closest[0]+EXTEND_STRAIGHT*U[0], closest[1]+EXTEND_STRAIGHT*U[1])
+            error =  (target[0]-CENTER[0],target[1]-CENTER[1])
+            
             error_angle = math.atan2(vy, vx)
 
             #on a curve
-            if abs(error_angle)>(math.pi/12) :
+            '''if abs(error_angle)>(math.pi/12) :
                 rospy.logerr('correcting curve')
-
                 target=(closest[0]+EXTEND_CURVE*U[0], closest[1]+EXTEND_CURVE*U[1])
                 error =  (target[0]-CENTER[0],target[1]-CENTER[1])
 
                 self.vx__dc =KP_X_CURVE*error[0]
                 self.vy__dc =KP_Y_CURVE*error[1]
                 self.wz__dc = KP_Z_CURVE_W*error_angle
+            else:'''
+
+            '''target=(closest[0]+EXTEND_STRAIGHT*U[0], closest[1]+EXTEND_STRAIGHT*U[1])
+            error =  (target[0]-CENTER[0],target[1]-CENTER[1])'''
+
+            self.vx__dc =KP_X_STRAIGHT*error[0]
+            self.vy__dc =KP_Y_STRAIGHT*error[1]
+            self.wz__dc = KP_Z_STRAIGHT_W*error_angle
 
             #y super off
-            elif abs(error[1]):
+            '''elif abs(error[1])>40:
                 rospy.logerr('correcting y')
-                self.wz__dc = KP_Y_CURVE*error[1]
-            #on as straight line    
-            else:
-                target=(closest[0]+EXTEND_STRAIGHT*U[0], closest[1]+EXTEND_STRAIGHT*U[1])
-                error =  (target[0]-CENTER[0],target[1]-CENTER[1])
 
-                self.vx__dc =KP_X_STRAIGHT*error[0]
-                self.vy__dc =KP_Y_STRAIGHT*error[1]
+                self.vx__dc =KP_X_CURVE*error[0]
                 self.wz__dc = KP_Z_STRAIGHT_W*error_angle
+                self.wz__dc = KP_Y_CURVE*error[1]'''
+
+            #on as straight line    
+            
 
 
             if DISPLAY:
