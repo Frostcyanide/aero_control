@@ -41,7 +41,7 @@ VELOCITY_X = 0.3
 TARGET_DISTANCE_TRAVELLED = 2
 TRACKER_EXTEND = 35
 
-WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 1 #amount of time to wait while flying over/under obstacle before going back to .75m
+WAIT_TIME = 2/(TRACKER_EXTEND*TRACKER_KP_X) + 2 #amount of time to wait while flying over/under obstacle before going back to .75m
 
 
 #########################
